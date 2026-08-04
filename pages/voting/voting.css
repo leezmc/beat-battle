@@ -1,0 +1,41 @@
+.voting-body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+.voting-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.voting-panel {
+  font-size: 48px;
+}
+
+.voting-timer {
+  font-weight: bold;
+}
+
+.beat-number {
+  font-size: 48px;
+}
+
+.beat-player {
+  display: none;
+}
+
+.star-button {
+  font-size: 64px;
+  background: none;
+  border: 0;
+  color: white;
+  cursor: pointer;
+  -webkit-text-stroke: 1px black;
+}
+
+.star-button.selected {
+  color: black;
+}
