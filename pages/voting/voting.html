@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beat Battle Voting</title>
+  <link rel="stylesheet" href="./voting.css">
+</head>
+<body class="voting-body">
+  <main class="voting-page">
+    <section class="voting-panel">
+      <div class="voting-timer" id="beatTimer">00:30</div>
+
+      <h1 class="beat-number" id="current-beat-title">Beat #1</h1>
+
+      <div class="beat-player" id="beatPlayer"></div>
+
+      <div class="star-rating" id="starRating">
+        <button class="star-button" type="button" data-rating="1">&#9733;</button>
+        <button class="star-button" type="button" data-rating="2">&#9733;</button>
+        <button class="star-button" type="button" data-rating="3">&#9733;</button>
+        <button class="star-button" type="button" data-rating="4">&#9733;</button>
+        <button class="star-button" type="button" data-rating="5">&#9733;</button>
+      </div>
+    </section>
+
+    <script src="./voting.js"></script>
+  </main>
+</body>
+</html>
