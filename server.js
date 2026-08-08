@@ -5,6 +5,7 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 
 const app = express();
+app.get('/', (req, res) => res.redirect('/landing/landing.html'));
 app.use(express.static(path.join(__dirname, 'pages')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
