@@ -1,0 +1,122 @@
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+header {
+    display: none;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.logo {
+    margin: 0;
+    font-size: clamp(3rem, 12vw, 8rem);
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.logo .beat {
+    display: inline-block;
+    color: var(--accent-soft);
+    transform: scale(1);
+    animation: beat-pulse 1.882s linear infinite;
+}
+
+.logo .battle {
+    color: var(--text);
+}
+
+@keyframes beat-pulse {
+    0% {
+        transform: scale(1.26);
+        color: var(--accent);
+    }
+    5% {
+        transform: scale(0.84);
+        color: var(--accent-soft);
+    }
+    23% {
+        transform: scale(1.04);
+        color: var(--accent);
+    }
+    25% {
+        transform: scale(1.14);
+        color: var(--accent);
+    }
+    30% {
+        transform: scale(0.9);
+        color: var(--accent-soft);
+    }
+    48% {
+        transform: scale(1);
+        color: var(--accent-soft);
+    }
+    50% {
+        transform: scale(1.26);
+        color: var(--accent);
+    }
+    55% {
+        transform: scale(0.84);
+        color: var(--accent-soft);
+    }
+    73% {
+        transform: scale(1.04);
+        color: var(--accent);
+    }
+    75% {
+        transform: scale(1.14);
+        color: var(--accent);
+    }
+    80% {
+        transform: scale(0.9);
+        color: var(--accent-soft);
+    }
+    98% {
+        transform: scale(1);
+        color: var(--accent-soft);
+    }
+    100% {
+        transform: scale(1.26);
+        color: var(--accent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .logo .beat {
+        animation: none;
+        color: var(--accent);
+    }
+}
+
+.btn-play {
+    display: inline-block;
+    padding: 1.2rem 8rem;
+    border-radius: 6px;
+    background: transparent;
+    border: 4px dotted var(--accent);
+    color: var(--accent);
+    font-weight: 1000;
+    font-size: 1.1rem;
+    letter-spacing: 0.35em;
+    text-decoration: none;
+}
+
+.btn-play:hover {
+    transform: translateY(-2px);
+    background: var(--accent);
+    color: #000000;
+}
+
+footer {
+    display: none;
+}

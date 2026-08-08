@@ -2,33 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0
-">
-
-
-    <title>Beat Battle</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat Battle - Matchmaking</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="./matchmaking.css">
 </head>
 <body>
+    <main class="matchmaking-page">
+        <h1 class="title">Beat Battle</h1>
 
-    
-    <header>
-        <h1>Beat Battle</h1>
-        <nav>
-            <ul>
-                <li><a href="#">Play</a></li>
-                <li><a href="#">Leaderboard</a></li>
-            </ul>
-        </nav>
-    </header>
-    <main>
-        <section>
+        <section id="entry-panel" class="panel">
+            <div class="nickname-group">
+                <label for="nickname">Nickname</label>
+                <input id="nickname" type="text" maxlength="20" placeholder="Enter a nickname" autocomplete="off">
+            </div>
+
+            <div class="lobby-options">
+                <button id="create-btn" type="button" disabled>Create Lobby</button>
+
+                <div class="divider">or</div>
+
+                <label for="lobby-code">Lobby Code</label>
+                <div class="join-row">
+                    <input id="lobby-code" type="text" maxlength="4" placeholder="ABCD" autocomplete="off">
+                    <button id="join-btn" type="button" disabled>Join Lobby</button>
+                </div>
+            </div>
+
+            <p id="error-message" class="error" hidden></p>
         </section>
-        <section>
+
+        <section id="lobby-panel" class="panel" hidden>
+            <p class="lobby-label">Lobby Code</p>
+            <p id="lobby-code-display" class="lobby-code"></p>
+
+            <h2>Players</h2>
+            <ul id="player-list" class="player-list"></ul>
+
+            <button id="leave-btn" type="button" class="secondary">Leave Lobby</button>
         </section>
+
+        <p id="connection-status" class="status">Connecting...</p>
     </main>
-    <footer>
-        <p></p>
-    </footer>
-    
+
+    <script src="./matchmaking.js"></script>
 </body>
+</html>
