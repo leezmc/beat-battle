@@ -14,3 +14,18 @@ Set env.json to:
   "api_key": "API_KEY"
 }
 ```
+
+## Usage
+
+To get started, run while in proj dir:
+```
+npm start
+```
+
+Then open up your browser and go to `http://localhost:3000` to see the app
+running.
+
+For specific pages, append like this for example (you will not need to append 'pages'):
+```
+http://localhost:3000/sequencer/sequencer.html
+```
