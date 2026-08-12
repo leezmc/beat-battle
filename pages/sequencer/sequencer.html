@@ -11,37 +11,39 @@
 </head>
 <body>
   <main class="sequencer-page">
-  <h1>Beat Sequencer</h1>
+  <h1 class="title">Beat Sequencer</h1>
 
-  <div class="controls">
+  <section class="controls panel">
     <button id="init-btn">Initialize Audio</button>
     <button id="toggle-seq-btn" disabled>Play Sequencer</button>
 
-    <label for="bpm-input">BPM:</label>
-    <input type="number" id="bpm-input" min="1" max="300" value="120" style="width: 60px;" disabled>
+    <div class="bpm-group">
+      <label for="bpm-input">BPM</label>
+      <input type="number" id="bpm-input" min="1" max="300" value="120" disabled>
+    </div>
 
     <button id="clear-btn" disabled>Clear Track</button>
 
-    <span id="step-counter" style="font-weight: bold; font-family: monospace; font-size: 1.2em;">Step: -- / 16</span>
-  </div>
+    <span id="step-counter" class="step-counter">Step: -- / 16</span>
+  </section>
 
-  <div id="kick-track" class="track">
-    <span>Kick: </span>
-  </div>
+  <section class="tracks-panel panel">
+    <div id="kick-track" class="track">
+      <span>Kick</span>
+    </div>
 
-  <div id="snare-track" class="track">
-    <span>Snare: </span>
-  </div>
+    <div id="snare-track" class="track">
+      <span>Snare</span>
+    </div>
 
-  <div id="hihat-track" class="track">
-    <span>HiHat: </span>
-  </div>
+    <div id="hihat-track" class="track">
+      <span>HiHat</span>
+    </div>
 
-  <br>
-
-  <div id="piano-track" class="track">
-    <span>Synth: </span>
-  </div>
+    <div id="piano-track" class="track">
+      <span>Synth</span>
+    </div>
+  </section>
 
   <div class="piano" id="piano-container">
     <div class="key white-key" data-note="C4"></div>
