@@ -39,12 +39,12 @@ export class AudioEngineAdapter {
     Tone.Draw.schedule(uiCallback, time);
   }
 
-  startSequencer(onStepCallback) {
+  startSequencer(onStepCallback, total_steps) {
     let step = 0;
 
     Tone.Transport.scheduleRepeat((time) => {
       onStepCallback(time, step);
-      step = (step + 1) % 16;
+      step = (step + 1) % total_steps;
     }, "16n");
 
     Tone.Transport.start();
