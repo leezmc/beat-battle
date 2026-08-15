@@ -21,14 +21,11 @@ export class AudioEngineAdapter {
 
   playSound(soundEnum, time) {
     const player = this.players[soundEnum];
-    if (player) {
-      if (player.state === "started") player.stop(time);
-      player.start(time);
-    }
+    if (player) player.restart(time);
   }
 
-  playSynthNote(note, time) {
-    this.synthPlayer.triggerAttackRelease(note, "8n", time);
+  playSynthNotes(notes, time) {
+    this.synthPlayer.triggerAttackRelease(notes, "16n", time);
   }
 
   setBPM(newBPM) {

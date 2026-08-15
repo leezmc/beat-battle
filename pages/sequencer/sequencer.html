@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crude Sequencer</title>
-  <script src="https://unpkg.com/tone"></script>
   <link rel="stylesheet" href="../../css/styles.css">
   <link rel ="stylesheet" href="./sequencer.css">
 
@@ -45,25 +44,12 @@
       <span>HiHat</span>
     </div>
 
-    <div id="piano-track" class="track">
-      <span>Synth</span>
-    </div>
   </section>
 
-  <div class="piano" id="piano-container">
-    <div class="key white-key" data-note="C4"></div>
-    <div class="key black-key" data-note="C#4"></div>
-    <div class="key white-key" data-note="D4"></div>
-    <div class="key black-key" data-note="D#4"></div>
-    <div class="key white-key" data-note="E4"></div>
-    <div class="key white-key" data-note="F4"></div>
-    <div class="key black-key" data-note="F#4"></div>
-    <div class="key white-key" data-note="G4"></div>
-    <div class="key black-key" data-note="G#4"></div>
-    <div class="key white-key" data-note="A4"></div>
-    <div class="key black-key" data-note="A#4"></div>
-    <div class="key white-key" data-note="B4"></div>
-  </div>
+  <section class="piano-roll-panel panel">
+    <h2>Synth Piano Roll</h2>
+    <div id="piano-roll" class="piano-roll"></div>
+  </section>
 
   <script type="module" src="app.js"></script>
   </main>
