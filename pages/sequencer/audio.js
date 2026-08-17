@@ -12,6 +12,8 @@ export class AudioEngineAdapter {
       [Sounds.Snare]: new Tone.Player(Sounds.BasePath + Sounds.Snare).toDestination(),
       [Sounds.HiHat]: new Tone.Player(Sounds.BasePath + Sounds.HiHat).toDestination()
     };
+
+    this.sampleInstruments = {};
   }
 
   async initialize() {
@@ -29,6 +31,21 @@ export class AudioEngineAdapter {
 
   playSynthNote(note, time) {
     this.synthPlayer.triggerAttackRelease(note, "8n", time);
+  }
+
+  playSample(sampleDef, time) {
+    let instrument = this.sampleInstruments[sampleDef.id];
+    if (!instrument) {
+      const SynthClass = Tone[sampleDef.synth];
+      instrument = new SynthClass(sampleDef.options || {}).toDestination();
+      this.sampleInstruments[sampleDef.id] = instrument;
+    }
+
+    if (sampleDef.note) {
+      instrument.triggerAttackRelease(sampleDef.note, sampleDef.duration || "8n", time);
+    } else {
+      instrument.triggerAttackRelease(sampleDef.duration || "8n", time);
+    }
   }
 
   setBPM(newBPM) {

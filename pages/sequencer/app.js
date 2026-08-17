@@ -1,5 +1,28 @@
 import { AudioEngineAdapter } from './audio.js';
 import { Sounds } from './sounds.js';
+import { CUSTOM_TRACKS_STORAGE_KEY } from '../sound-samples/sample-sounds.js';
+
+function loadCustomTrackDefs() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_TRACKS_STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function buildCheckboxTrack(trackEl, steps, prevChecked) {
+  while (trackEl.children.length > 1) trackEl.removeChild(trackEl.lastChild);
+
+  const boxes = [];
+  for (let i = 0; i < steps; i++) {
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!(prevChecked && prevChecked[i]);
+    boxes.push(cb);
+    trackEl.appendChild(cb);
+  }
+  return boxes;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   const initBtn = document.getElementById('init-btn');
@@ -8,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clear-btn');
   const stepCounter = document.getElementById('step-counter');
   const stepsInput = document.getElementById('steps-input');
-  
+
+  const tracksPanel = document.querySelector('.tracks-panel');
   const kickTrack = document.getElementById('kick-track');
   const snareTrack = document.getElementById('snare-track');
   const hihatTrack = document.getElementById('hihat-track');
@@ -26,43 +50,42 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeStep = 0;
   let stepCount = parseInt(stepsInput.value, 10);
 
+  const customTracks = loadCustomTrackDefs().map(def => {
+    const trackEl = document.createElement('div');
+    trackEl.className = 'track';
+    trackEl.id = `custom-track-${def.id}`;
+
+    const label = document.createElement('span');
+    label.innerText = def.label;
+    label.title = def.label;
+    trackEl.appendChild(label);
+
+    tracksPanel.appendChild(trackEl);
+
+    return { def, trackEl, boxes: [] };
+  });
+
   function buildGrid(steps) {
-    const prevChecked = {
-      kick: kickBoxes.map(b => b.checked),
-      snare: snareBoxes.map(b => b.checked),
-      hihat: hihatBoxes.map(b => b.checked),
-    };
+    const prevKickChecked = kickBoxes.map(b => b.checked);
+    const prevSnareChecked = snareBoxes.map(b => b.checked);
+    const prevHihatChecked = hihatBoxes.map(b => b.checked);
+    const prevCustomChecked = customTracks.map(t => t.boxes.map(b => b.checked));
     const prevPianoSequence = pianoSequence.slice();
 
-    [kickTrack, snareTrack, hihatTrack, pianoTrack].forEach(track => {
-      while (track.children.length > 1) track.removeChild(track.lastChild);
+    kickBoxes = buildCheckboxTrack(kickTrack, steps, prevKickChecked);
+    snareBoxes = buildCheckboxTrack(snareTrack, steps, prevSnareChecked);
+    hihatBoxes = buildCheckboxTrack(hihatTrack, steps, prevHihatChecked);
+
+    customTracks.forEach((t, idx) => {
+      t.boxes = buildCheckboxTrack(t.trackEl, steps, prevCustomChecked[idx]);
     });
 
-    kickBoxes = [];
-    snareBoxes = [];
-    hihatBoxes = [];
+    while (pianoTrack.children.length > 1) pianoTrack.removeChild(pianoTrack.lastChild);
+
     pianoNodes = [];
     pianoSequence = Array(steps).fill(null);
 
     for (let i = 0; i < steps; i++) {
-      const kCb = document.createElement('input');
-      kCb.type = 'checkbox';
-      kCb.checked = !!prevChecked.kick[i];
-      kickBoxes.push(kCb);
-      kickTrack.appendChild(kCb);
-
-      const sCb = document.createElement('input');
-      sCb.type = 'checkbox';
-      sCb.checked = !!prevChecked.snare[i];
-      snareBoxes.push(sCb);
-      snareTrack.appendChild(sCb);
-
-      const hCb = document.createElement('input');
-      hCb.type = 'checkbox';
-      hCb.checked = !!prevChecked.hihat[i];
-      hihatBoxes.push(hCb);
-      hihatTrack.appendChild(hCb);
-
       const pNode = document.createElement('div');
       pNode.className = 'piano-node';
       pNode.addEventListener('click', () => {
@@ -123,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   clearBtn.addEventListener('click', () => {
-    const allBoxes = [...kickBoxes, ...snareBoxes, ...hihatBoxes];
+    const allBoxes = [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...customTracks.flatMap(t => t.boxes)];
     allBoxes.forEach(box => {
       box.checked = false;
     });
@@ -143,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
       stepsInput.disabled = false;
       stepCounter.innerText = `Step: -- / ${stepCount}`;
 
-      [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...pianoNodes].forEach(box => box.classList.remove('playing'));
+      [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...pianoNodes, ...customTracks.flatMap(t => t.boxes)].forEach(box => box.classList.remove('playing'));
     } else {
       toggleSeqBtn.innerText = "Stop Sequencer";
       isPlaying = true;
@@ -156,6 +179,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (snareBoxes[currentStep].checked) audioAdapter.playSound(Sounds.Snare, time);
         if (hihatBoxes[currentStep].checked) audioAdapter.playSound(Sounds.HiHat, time);
 
+        customTracks.forEach(t => {
+          if (t.boxes[currentStep].checked) audioAdapter.playSample(t.def, time);
+        });
+
         const recordedNote = pianoSequence[currentStep];
         if (recordedNote !== null) {
           audioAdapter.playSynthNote(recordedNote, time);
@@ -164,12 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
         audioAdapter.scheduleUIUpdate(time, () => {
           stepCounter.innerText = `Step: ${(currentStep + 1).toString().padStart(2, '0')} / ${stepCount}`;
 
-          [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...pianoNodes].forEach(box => box.classList.remove('playing'));
+          [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...pianoNodes, ...customTracks.flatMap(t => t.boxes)].forEach(box => box.classList.remove('playing'));
 
           kickBoxes[currentStep].classList.add('playing');
           snareBoxes[currentStep].classList.add('playing');
           hihatBoxes[currentStep].classList.add('playing');
           pianoNodes[currentStep].classList.add('playing');
+          customTracks.forEach(t => t.boxes[currentStep].classList.add('playing'));
         });
       }, stepCount);
     }
