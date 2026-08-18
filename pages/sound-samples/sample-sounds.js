@@ -1,4 +1,4 @@
-\
+
 export const SoundSets = [
   {
     name: 'Techno',
