@@ -23,14 +23,12 @@ export class AudioEngineAdapter {
 
   playSound(soundEnum, time) {
     const player = this.players[soundEnum];
-    if (player) {
-      if (player.state === "started") player.stop(time);
-      player.start(time);
-    }
+    if (player) player.start(time);
   }
 
-  playSynthNote(note, time) {
-    this.synthPlayer.triggerAttackRelease(note, "8n", time);
+  playSynthNote(note, durationInSteps, time) {
+    const durationSecs = Tone.Time("16n").toSeconds() * durationInSteps;
+    this.synthPlayer.triggerAttackRelease(note, durationSecs, time);
   }
 
   playSample(sampleDef, time) {
@@ -70,5 +68,7 @@ export class AudioEngineAdapter {
   stopSequencer() {
     Tone.Transport.stop();
     Tone.Transport.cancel();
+    Tone.Draw.cancel();
+    Tone.Transport.position = 0;
   }
 }

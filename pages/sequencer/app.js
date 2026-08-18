@@ -1,4 +1,6 @@
 import { AudioEngineAdapter } from './audio.js';
+import { PianoRoll } from './piano-roll.js';
+import { DrumGrid } from './drum-grid.js';
 import { Sounds } from './sounds.js';
 import { CUSTOM_TRACKS_STORAGE_KEY } from '../sound-samples/sample-sounds.js';
 
@@ -39,15 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const pianoTrack = document.getElementById('piano-track');
 
   const audioAdapter = new AudioEngineAdapter();
-
-  let kickBoxes = [];
-  let snareBoxes = [];
-  let hihatBoxes = [];
-  let pianoNodes = [];
-  let pianoSequence = [];
+  const drumGrid = new DrumGrid();
+  const pianoRoll = new PianoRoll('piano-roll-canvas');
 
   let isPlaying = false;
-  let activeStep = 0;
   let stepCount = parseInt(stepsInput.value, 10);
 
   const customTracks = loadCustomTrackDefs().map(def => {
@@ -109,6 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   buildGrid(stepCount);
+  drumGrid.buildGrid(stepCount);
+  pianoRoll.resizeSteps(stepCount);
+  stepCounter.textContent = `Step: -- / ${stepCount}`;
 
   initBtn.addEventListener('click', async () => {
     await audioAdapter.initialize();
@@ -119,30 +119,28 @@ document.addEventListener('DOMContentLoaded', () => {
     clearBtn.disabled = false;
   });
 
-  bpmInput.addEventListener('change', (e) => {
-    let newBPM = parseInt(e.target.value, 10);
-    if (newBPM < 1) newBPM = 1;
-    if (newBPM > 300) newBPM = 300;
-
-    e.target.value = newBPM;
+  bpmInput.addEventListener('change', (event) => {
+    let newBPM = Math.max(1, Math.min(300, parseInt(event.target.value, 10)));
+    event.target.value = newBPM;
     audioAdapter.setBPM(newBPM);
   });
 
-  stepsInput.addEventListener('change', (e) => {
-    let newSteps = parseInt(e.target.value, 10);
-    if (newSteps < 1) newSteps = 1;
-    if (newSteps > 64) newSteps = 64;
-
-    e.target.value = newSteps;
+  stepsInput.addEventListener('change', (event) => {
+    let newSteps = Math.max(1, Math.min(64, parseInt(event.target.value, 10)));
+    event.target.value = newSteps;
     stepCount = newSteps;
 
     if (isPlaying) {
       audioAdapter.stopSequencer();
-      toggleSeqBtn.innerText = "Play Sequencer";
+      toggleSeqBtn.textContent = 'Play Sequencer';
       isPlaying = false;
+      drumGrid.clearHighlights();
+      pianoRoll.setPlayhead(-1);
     }
 
-    buildGrid(stepCount);
+    drumGrid.buildGrid(stepCount);
+    pianoRoll.resizeSteps(stepCount);
+    stepCounter.textContent = `Step: -- / ${stepCount}`;
   });
 
   clearBtn.addEventListener('click', () => {
@@ -156,13 +154,18 @@ document.addEventListener('DOMContentLoaded', () => {
       node.innerText = '';
       node.classList.remove('has-note');
     });
+    drumGrid.clear();
+    pianoRoll.clear();
   });
 
   toggleSeqBtn.addEventListener('click', () => {
     if (isPlaying) {
       audioAdapter.stopSequencer();
-      toggleSeqBtn.innerText = "Play Sequencer";
+      drumGrid.clearHighlights();
+      pianoRoll.setPlayhead(-1);
+
       isPlaying = false;
+      toggleSeqBtn.textContent = 'Play Sequencer';
       stepsInput.disabled = false;
       stepCounter.innerText = `Step: -- / ${stepCount}`;
 
@@ -200,24 +203,31 @@ document.addEventListener('DOMContentLoaded', () => {
           customTracks.forEach(t => t.boxes[currentStep].classList.add('playing'));
         });
       }, stepCount);
+      stepCounter.textContent = `Step: -- / ${stepCount}`;
+      return;
     }
-  });
 
-  const pianoKeys = document.querySelectorAll('.key');
+    isPlaying = true;
+    toggleSeqBtn.textContent = 'Stop Sequencer';
+    stepsInput.disabled = true;
 
-  pianoKeys.forEach(key => {
-    key.addEventListener('mousedown', (e) => {
-      const noteToPlay = e.target.getAttribute('data-note');
+    audioAdapter.startSequencer((time, currentStep) => {
+      const activeDrums = drumGrid.getActiveDrums(currentStep);
+      const activeNotes = pianoRoll.getActiveNotes(currentStep);
 
-      if (noteToPlay) {
-        audioAdapter.playSynthNote(noteToPlay);
+      if (activeDrums.kick) audioAdapter.playSound(Sounds.Kick, time);
+      if (activeDrums.snare) audioAdapter.playSound(Sounds.Snare, time);
+      if (activeDrums.hihat) audioAdapter.playSound(Sounds.HiHat, time);
 
-        if (isPlaying) {
-          pianoSequence[activeStep] = noteToPlay;
-          pianoNodes[activeStep].innerText = noteToPlay;
-          pianoNodes[activeStep].classList.add('has-note');
-        }
-      }
-    });
+      activeNotes.forEach(noteData => {
+        audioAdapter.playSynthNote(noteData.note, noteData.duration, time);
+      });
+
+      audioAdapter.scheduleUIUpdate(time, () => {
+        drumGrid.highlightPlayingStep(currentStep);
+        pianoRoll.setPlayhead(currentStep);
+        stepCounter.textContent = `Step: ${(currentStep + 1).toString().padStart(2, '0')} / ${stepCount}`;
+      });
+    }, stepCount);
   });
 });
