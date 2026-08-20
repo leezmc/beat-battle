@@ -3,6 +3,7 @@ import { PianoRoll } from './piano-roll.js';
 import { DrumGrid } from './drum-grid.js';
 import { Sounds } from './sounds.js';
 import { CUSTOM_TRACKS_STORAGE_KEY } from '../sound-samples/sample-sounds.js';
+import { buildCheckboxTrack } from './checkbox-track.js';
 
 function loadCustomTrackDefs() {
   try {
@@ -12,18 +13,17 @@ function loadCustomTrackDefs() {
   }
 }
 
-function buildCheckboxTrack(trackEl, steps, prevChecked) {
-  while (trackEl.children.length > 1) trackEl.removeChild(trackEl.lastChild);
+function buildSectionRuler(rulerEl, sections) {
+  while (rulerEl.children.length > 1) rulerEl.removeChild(rulerEl.lastChild);
 
-  const boxes = [];
-  for (let i = 0; i < steps; i++) {
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !!(prevChecked && prevChecked[i]);
-    boxes.push(cb);
-    trackEl.appendChild(cb);
-  }
-  return boxes;
+  sections.forEach(section => {
+    const block = document.createElement('div');
+    block.className = 'section-block';
+    block.textContent = section.name;
+    block.title = section.name;
+    block.style.width = `${section.steps * 28 + (section.steps - 1) * 5}px`;
+    rulerEl.appendChild(block);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,12 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clear-btn');
   const stepCounter = document.getElementById('step-counter');
   const stepsInput = document.getElementById('steps-input');
+  const sectionRuler = document.getElementById('section-ruler');
 
   const tracksPanel = document.querySelector('.tracks-panel');
-  const kickTrack = document.getElementById('kick-track');
-  const snareTrack = document.getElementById('snare-track');
-  const hihatTrack = document.getElementById('hihat-track');
-  const pianoTrack = document.getElementById('piano-track');
+
+  tracksPanel.addEventListener('wheel', (event) => {
+    if (tracksPanel.scrollWidth <= tracksPanel.clientWidth) return;
+    event.preventDefault();
+    tracksPanel.scrollLeft += event.deltaY;
+  }, { passive: false });
 
   const audioAdapter = new AudioEngineAdapter();
   const drumGrid = new DrumGrid();
@@ -62,53 +65,36 @@ document.addEventListener('DOMContentLoaded', () => {
     return { def, trackEl, boxes: [] };
   });
 
-  function buildGrid(steps) {
-    const prevKickChecked = kickBoxes.map(b => b.checked);
-    const prevSnareChecked = snareBoxes.map(b => b.checked);
-    const prevHihatChecked = hihatBoxes.map(b => b.checked);
-    const prevCustomChecked = customTracks.map(t => t.boxes.map(b => b.checked));
-    const prevPianoSequence = pianoSequence.slice();
-
-    kickBoxes = buildCheckboxTrack(kickTrack, steps, prevKickChecked);
-    snareBoxes = buildCheckboxTrack(snareTrack, steps, prevSnareChecked);
-    hihatBoxes = buildCheckboxTrack(hihatTrack, steps, prevHihatChecked);
-
+  function buildCustomTracks(steps) {
+    const prevChecked = customTracks.map(t => t.boxes.map(b => b.checked));
     customTracks.forEach((t, idx) => {
-      t.boxes = buildCheckboxTrack(t.trackEl, steps, prevCustomChecked[idx]);
+      t.boxes = buildCheckboxTrack(t.trackEl, steps, prevChecked[idx]);
     });
-
-    while (pianoTrack.children.length > 1) pianoTrack.removeChild(pianoTrack.lastChild);
-
-    pianoNodes = [];
-    pianoSequence = Array(steps).fill(null);
-
-    for (let i = 0; i < steps; i++) {
-      const pNode = document.createElement('div');
-      pNode.className = 'piano-node';
-      pNode.addEventListener('click', () => {
-        pianoSequence[i] = null;
-        pNode.innerText = '';
-        pNode.classList.remove('has-note');
-      });
-
-      const prevNote = prevPianoSequence[i];
-      if (prevNote) {
-        pianoSequence[i] = prevNote;
-        pNode.innerText = prevNote;
-        pNode.classList.add('has-note');
-      }
-
-      pianoNodes.push(pNode);
-      pianoTrack.appendChild(pNode);
-    }
-
-    stepCounter.innerText = `Step: -- / ${steps}`;
   }
 
-  buildGrid(stepCount);
+  function clearHighlights() {
+    drumGrid.clearHighlights();
+    pianoRoll.setPlayhead(-1);
+    customTracks.forEach(t => t.boxes.forEach(b => b.classList.remove('playing')));
+  }
+
+  buildCustomTracks(stepCount);
   drumGrid.buildGrid(stepCount);
   pianoRoll.resizeSteps(stepCount);
   stepCounter.textContent = `Step: -- / ${stepCount}`;
+
+  audioAdapter.setBPM(parseInt(bpmInput.value, 10));
+
+  const STEPS_MAX = parseInt(stepsInput.max, 10);
+
+  function stopPlayback() {
+    audioAdapter.stopSequencer();
+    isPlaying = false;
+    toggleSeqBtn.textContent = 'Play Sequencer';
+    stepsInput.disabled = false;
+    stepCounter.textContent = `Step: -- / ${stepCount}`;
+    clearHighlights();
+  }
 
   initBtn.addEventListener('click', async () => {
     await audioAdapter.initialize();
@@ -126,84 +112,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   stepsInput.addEventListener('change', (event) => {
-    let newSteps = Math.max(1, Math.min(64, parseInt(event.target.value, 10)));
+    let newSteps = Math.max(1, Math.min(STEPS_MAX, parseInt(event.target.value, 10)));
     event.target.value = newSteps;
     stepCount = newSteps;
 
-    if (isPlaying) {
-      audioAdapter.stopSequencer();
-      toggleSeqBtn.textContent = 'Play Sequencer';
-      isPlaying = false;
-      drumGrid.clearHighlights();
-      pianoRoll.setPlayhead(-1);
-    }
+    if (isPlaying) stopPlayback();
 
     drumGrid.buildGrid(stepCount);
     pianoRoll.resizeSteps(stepCount);
+    buildCustomTracks(stepCount);
+    buildSectionRuler(sectionRuler, []);
     stepCounter.textContent = `Step: -- / ${stepCount}`;
   });
 
   clearBtn.addEventListener('click', () => {
-    const allBoxes = [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...customTracks.flatMap(t => t.boxes)];
-    allBoxes.forEach(box => {
-      box.checked = false;
-    });
-
-    pianoSequence.fill(null);
-    pianoNodes.forEach(node => {
-      node.innerText = '';
-      node.classList.remove('has-note');
-    });
     drumGrid.clear();
     pianoRoll.clear();
+    customTracks.forEach(t => t.boxes.forEach(b => { b.checked = false; }));
   });
 
   toggleSeqBtn.addEventListener('click', () => {
     if (isPlaying) {
-      audioAdapter.stopSequencer();
-      drumGrid.clearHighlights();
-      pianoRoll.setPlayhead(-1);
-
-      isPlaying = false;
-      toggleSeqBtn.textContent = 'Play Sequencer';
-      stepsInput.disabled = false;
-      stepCounter.innerText = `Step: -- / ${stepCount}`;
-
-      [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...pianoNodes, ...customTracks.flatMap(t => t.boxes)].forEach(box => box.classList.remove('playing'));
-    } else {
-      toggleSeqBtn.innerText = "Stop Sequencer";
-      isPlaying = true;
-      stepsInput.disabled = true;
-
-      audioAdapter.startSequencer((time, currentStep) => {
-        activeStep = currentStep;
-
-        if (kickBoxes[currentStep].checked) audioAdapter.playSound(Sounds.Kick, time);
-        if (snareBoxes[currentStep].checked) audioAdapter.playSound(Sounds.Snare, time);
-        if (hihatBoxes[currentStep].checked) audioAdapter.playSound(Sounds.HiHat, time);
-
-        customTracks.forEach(t => {
-          if (t.boxes[currentStep].checked) audioAdapter.playSample(t.def, time);
-        });
-
-        const recordedNote = pianoSequence[currentStep];
-        if (recordedNote !== null) {
-          audioAdapter.playSynthNote(recordedNote, time);
-        }
-
-        audioAdapter.scheduleUIUpdate(time, () => {
-          stepCounter.innerText = `Step: ${(currentStep + 1).toString().padStart(2, '0')} / ${stepCount}`;
-
-          [...kickBoxes, ...snareBoxes, ...hihatBoxes, ...pianoNodes, ...customTracks.flatMap(t => t.boxes)].forEach(box => box.classList.remove('playing'));
-
-          kickBoxes[currentStep].classList.add('playing');
-          snareBoxes[currentStep].classList.add('playing');
-          hihatBoxes[currentStep].classList.add('playing');
-          pianoNodes[currentStep].classList.add('playing');
-          customTracks.forEach(t => t.boxes[currentStep].classList.add('playing'));
-        });
-      }, stepCount);
-      stepCounter.textContent = `Step: -- / ${stepCount}`;
+      stopPlayback();
       return;
     }
 
@@ -219,6 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeDrums.snare) audioAdapter.playSound(Sounds.Snare, time);
       if (activeDrums.hihat) audioAdapter.playSound(Sounds.HiHat, time);
 
+      customTracks.forEach(t => {
+        if (t.boxes[currentStep].checked) audioAdapter.playSample(t.def, time);
+      });
+
       activeNotes.forEach(noteData => {
         audioAdapter.playSynthNote(noteData.note, noteData.duration, time);
       });
@@ -226,6 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
       audioAdapter.scheduleUIUpdate(time, () => {
         drumGrid.highlightPlayingStep(currentStep);
         pianoRoll.setPlayhead(currentStep);
+        customTracks.forEach(t => {
+          t.boxes.forEach(b => b.classList.remove('playing'));
+          t.boxes[currentStep].classList.add('playing');
+        });
         stepCounter.textContent = `Step: ${(currentStep + 1).toString().padStart(2, '0')} / ${stepCount}`;
       });
     }, stepCount);
