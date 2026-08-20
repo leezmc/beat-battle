@@ -1,3 +1,5 @@
+import { buildCheckboxTrack } from './checkbox-track.js';
+
 export class DrumGrid {
   constructor() {
     this.kickTrack = document.getElementById('kick-track');
@@ -20,26 +22,21 @@ export class DrumGrid {
 
     this.stepCount = newStepCount;
 
-    this.kickBoxes = this._buildDrumTrack(this.kickTrack, previousDrums.kick);
-    this.snareBoxes = this._buildDrumTrack(this.snareTrack, previousDrums.snare);
-    this.hihatBoxes = this._buildDrumTrack(this.hihatTrack, previousDrums.hihat);
-  }
-
-  _buildDrumTrack(track, previousValues) {
-    while (track.children.length > 1) track.removeChild(track.lastChild);
-    return Array.from({ length: this.stepCount }, (_, step) => {
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = Boolean(previousValues && previousValues[step]);
-      track.appendChild(checkbox);
-      return checkbox;
-    });
+    this.kickBoxes = buildCheckboxTrack(this.kickTrack, this.stepCount, previousDrums.kick);
+    this.snareBoxes = buildCheckboxTrack(this.snareTrack, this.stepCount, previousDrums.snare);
+    this.hihatBoxes = buildCheckboxTrack(this.hihatTrack, this.stepCount, previousDrums.hihat);
   }
 
   clear() {
     [...this.kickBoxes, ...this.snareBoxes, ...this.hihatBoxes].forEach((box) => {
       box.checked = false;
     });
+  }
+
+  loadPattern({ kick = [], snare = [], hihat = [] } = {}) {
+    kick.forEach(step => { if (this.kickBoxes[step]) this.kickBoxes[step].checked = true; });
+    snare.forEach(step => { if (this.snareBoxes[step]) this.snareBoxes[step].checked = true; });
+    hihat.forEach(step => { if (this.hihatBoxes[step]) this.hihatBoxes[step].checked = true; });
   }
 
   clearHighlights() {

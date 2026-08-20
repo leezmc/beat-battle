@@ -92,6 +92,28 @@
   box-shadow: 0 0 8px var(--accent-soft);
 }
 
+.section-ruler {
+  margin-bottom: 0.25rem;
+}
+
+.section-block {
+  flex: 0 0 auto;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: rgba(9, 21, 255, 0.15);
+  color: var(--accent-soft);
+  font-size: 0.65rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
 .piano-roll-panel {
   width: min(100%, 1000px);
   overflow-x: auto;

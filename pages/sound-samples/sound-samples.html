@@ -1,31 +1,30 @@
-<!-- Sound sample reveal  -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sound Samples</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Samples</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+  <link rel="stylesheet" href="./sound-samples.css">
 </head>
 <body>
-    <header>
-        <h1>Sound Samples</h1>
-        <p>Theme: Techno
-        </p>
-    </header>
-    <main>
-        <section>
-            <h2>Sound Samples</h2>
-            <ul>
-                <li><a href="sound1.mp3" target="_blank">Sound Sample       1</a></li>
-                <li><a href="sound2.mp3" target="_blank">Sound Sample 2</a></li>
-                <li><a href="sound3.mp3" target ="_blank">Sound Sample 3</a></li>
-            </ul>
-        </section>
-        <section>
-            <h2>Instructions</h2>
-            <p> Click to play each sound sample, ready up for creation.</p>
-        </section>
-    </main> 
+  <main class="samples-page">
+    <h1 class="title">Sound Samples</h1>
+
+    <section class="controls panel">
+      <button id="init-btn">Initialize Audio</button>
+
+      <div class="theme-group">
+        <label for="theme-select">Theme</label>
+        <select id="theme-select"></select>
+      </div>
+
+      <a class="link-btn" href="../sequencer/sequencer.html">Go to Sequencer &rarr;</a>
+    </section>
+
+    <section id="sample-grid" class="sample-grid panel"></section>
+  </main>
+
+  <script type="module" src="./sound-samples.js"></script>
 </body>
+</html>
