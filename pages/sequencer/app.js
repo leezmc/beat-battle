@@ -2,6 +2,8 @@ import { AudioEngineAdapter } from './audio.js';
 import { PianoRoll } from './piano-roll.js';
 import { DrumGrid } from './drum-grid.js';
 import { Sounds } from './sounds.js';
+import { PIANO_NOTES } from './config.js';
+import { loadBeatDraft, saveBeatDraft } from './beat-draft.js';
 import { CUSTOM_TRACKS_STORAGE_KEY } from '../sound-samples/sample-sounds.js';
 import { buildCheckboxTrack } from './checkbox-track.js';
 
@@ -31,6 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleSeqBtn = document.getElementById('toggle-seq-btn');
   const bpmInput = document.getElementById('bpm-input');
   const clearBtn = document.getElementById('clear-btn');
+  const saveDraftBtn = document.getElementById('save-draft-btn');
+  const loadDraftBtn = document.getElementById('load-draft-btn');
+  const draftStatus = document.getElementById('draft-status');
   const stepCounter = document.getElementById('step-counter');
   const stepsInput = document.getElementById('steps-input');
   const sectionRuler = document.getElementById('section-ruler');
@@ -50,20 +55,26 @@ document.addEventListener('DOMContentLoaded', () => {
   let isPlaying = false;
   let stepCount = parseInt(stepsInput.value, 10);
 
-  const customTracks = loadCustomTrackDefs().map(def => {
+  const customTracks = [];
+
+  function addCustomTrack(def) {
+    if (!def?.id || customTracks.some(track => track.def.id === def.id)) return;
+
     const trackEl = document.createElement('div');
     trackEl.className = 'track';
     trackEl.id = `custom-track-${def.id}`;
 
     const label = document.createElement('span');
-    label.innerText = def.label;
-    label.title = def.label;
+    label.innerText = def.label || def.id;
+    label.title = label.innerText;
     trackEl.appendChild(label);
 
     tracksPanel.appendChild(trackEl);
 
-    return { def, trackEl, boxes: [] };
-  });
+    customTracks.push({ def, trackEl, boxes: [] });
+  }
+
+  loadCustomTrackDefs().forEach(addCustomTrack);
 
   function buildCustomTracks(steps) {
     const prevChecked = customTracks.map(t => t.boxes.map(b => b.checked));
@@ -86,6 +97,73 @@ document.addEventListener('DOMContentLoaded', () => {
   audioAdapter.setBPM(parseInt(bpmInput.value, 10));
 
   const STEPS_MAX = parseInt(stepsInput.max, 10);
+
+  function updateStepCount(newSteps) {
+    stepCount = Math.max(1, Math.min(STEPS_MAX, parseInt(newSteps, 10) || stepCount));
+    stepsInput.value = stepCount;
+    drumGrid.buildGrid(stepCount);
+    pianoRoll.resizeSteps(stepCount);
+    buildCustomTracks(stepCount);
+    buildSectionRuler(sectionRuler, []);
+    stepCounter.textContent = `Step: -- / ${stepCount}`;
+  }
+
+  function activeSteps(boxes) {
+    return boxes.reduce((steps, box, step) => {
+      if (box.checked) steps.push(step);
+      return steps;
+    }, []);
+  }
+
+  function createBeatDraft() {
+    return {
+      version: 1,
+      bpm: parseInt(bpmInput.value, 10),
+      steps: stepCount,
+      drums: {
+        kick: activeSteps(drumGrid.kickBoxes),
+        snare: activeSteps(drumGrid.snareBoxes),
+        hihat: activeSteps(drumGrid.hihatBoxes),
+      },
+      pianoNotes: pianoRoll.pianoNotes.flatMap((row, rowIndex) => row.reduce((notes, noteData, step) => {
+        if (noteData.active) {
+          notes.push({ note: PIANO_NOTES[rowIndex], step, duration: noteData.duration });
+        }
+        return notes;
+      }, [])),
+      customTracks: customTracks.map(track => ({
+        ...track.def,
+        steps: activeSteps(track.boxes),
+      })),
+    };
+  }
+
+  function applyBeatDraft(beatDraft) {
+    if (isPlaying) stopPlayback();
+
+    const savedTracks = Array.isArray(beatDraft.customTracks) ? beatDraft.customTracks : [];
+    savedTracks.forEach(({ steps, ...definition }) => addCustomTrack(definition));
+    updateStepCount(beatDraft.steps);
+
+    drumGrid.clear();
+    pianoRoll.clear();
+    customTracks.forEach(track => track.boxes.forEach(box => { box.checked = false; }));
+
+    drumGrid.loadPattern(beatDraft.drums);
+    pianoRoll.loadNotes(Array.isArray(beatDraft.pianoNotes) ? beatDraft.pianoNotes : []);
+
+    const savedStepsByTrack = new Map(savedTracks.map(track => [track.id, track.steps]));
+    customTracks.forEach(track => {
+      const savedSteps = savedStepsByTrack.get(track.def.id) || [];
+      savedSteps.forEach(step => {
+        if (track.boxes[step]) track.boxes[step].checked = true;
+      });
+    });
+
+    const bpm = Math.max(1, Math.min(300, parseInt(beatDraft.bpm, 10) || 120));
+    bpmInput.value = bpm;
+    audioAdapter.setBPM(bpm);
+  }
 
   function stopPlayback() {
     audioAdapter.stopSequencer();
@@ -112,23 +190,38 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   stepsInput.addEventListener('change', (event) => {
-    let newSteps = Math.max(1, Math.min(STEPS_MAX, parseInt(event.target.value, 10)));
-    event.target.value = newSteps;
-    stepCount = newSteps;
-
     if (isPlaying) stopPlayback();
-
-    drumGrid.buildGrid(stepCount);
-    pianoRoll.resizeSteps(stepCount);
-    buildCustomTracks(stepCount);
-    buildSectionRuler(sectionRuler, []);
-    stepCounter.textContent = `Step: -- / ${stepCount}`;
+    updateStepCount(event.target.value);
   });
 
   clearBtn.addEventListener('click', () => {
     drumGrid.clear();
     pianoRoll.clear();
     customTracks.forEach(t => t.boxes.forEach(b => { b.checked = false; }));
+  });
+
+  saveDraftBtn.addEventListener('click', () => {
+    try {
+      saveBeatDraft(createBeatDraft());
+      draftStatus.textContent = 'Draft saved.';
+    } catch {
+      draftStatus.textContent = 'Could not save draft.';
+    }
+  });
+
+  loadDraftBtn.addEventListener('click', () => {
+    try {
+      const beatDraft = loadBeatDraft();
+      if (!beatDraft) {
+        draftStatus.textContent = 'No saved draft.';
+        return;
+      }
+
+      applyBeatDraft(beatDraft);
+      draftStatus.textContent = 'Draft loaded.';
+    } catch {
+      draftStatus.textContent = 'Could not load draft.';
+    }
   });
 
   toggleSeqBtn.addEventListener('click', () => {
