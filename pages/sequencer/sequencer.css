@@ -56,8 +56,8 @@
 .track span {
   position: sticky;
   left: 0;
-  flex: 0 0 60px;
-  width: 60px;
+  flex: 0 0 130px;
+  width: 130px;
   white-space: nowrap;
   font-weight: bold;
   color: var(--muted);

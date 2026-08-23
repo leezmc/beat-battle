@@ -4,7 +4,8 @@ import { DrumGrid } from './drum-grid.js';
 import { Sounds } from './sounds.js';
 import { PIANO_NOTES } from './config.js';
 import { loadBeatDraft, saveBeatDraft } from './beat-draft.js';
-import { CUSTOM_TRACKS_STORAGE_KEY } from '../sound-samples/sample-sounds.js';
+import { createSongPayload } from './song-payload.mjs';
+import { CUSTOM_TRACKS_STORAGE_KEY, ELECTRIC_BASS } from '../sound-samples/sample-sounds.js';
 import { buildCheckboxTrack } from './checkbox-track.js';
 
 function loadCustomTrackDefs() {
@@ -57,23 +58,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const customTracks = [];
 
-  function addCustomTrack(def) {
+  function addCustomTrack(def, existingTrackEl) {
     if (!def?.id || customTracks.some(track => track.def.id === def.id)) return;
 
-    const trackEl = document.createElement('div');
-    trackEl.className = 'track';
-    trackEl.id = `custom-track-${def.id}`;
+    let trackEl = existingTrackEl;
+    if (!trackEl) {
+      trackEl = document.createElement('div');
+      trackEl.className = 'track';
+      trackEl.id = `custom-track-${def.id}`;
 
-    const label = document.createElement('span');
-    label.innerText = def.label || def.id;
-    label.title = label.innerText;
-    trackEl.appendChild(label);
+      const label = document.createElement('span');
+      label.innerText = def.label || def.id;
+      label.title = label.innerText;
+      trackEl.appendChild(label);
 
-    tracksPanel.appendChild(trackEl);
+      tracksPanel.appendChild(trackEl);
+    }
 
     customTracks.push({ def, trackEl, boxes: [] });
   }
 
+  addCustomTrack(ELECTRIC_BASS, document.getElementById('bass-track'));
   loadCustomTrackDefs().forEach(addCustomTrack);
 
   function buildCustomTracks(steps) {
@@ -116,8 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createBeatDraft() {
-    return {
-      version: 1,
+    return createSongPayload({
       bpm: parseInt(bpmInput.value, 10),
       steps: stepCount,
       drums: {
@@ -135,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ...track.def,
         steps: activeSteps(track.boxes),
       })),
-    };
+    });
   }
 
   function applyBeatDraft(beatDraft) {
