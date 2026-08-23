@@ -1,5 +1,7 @@
 import * as Tone from 'https://unpkg.com/tone?module';
-import { SampleThemes, CUSTOM_TRACKS_STORAGE_KEY } from './sample-sounds.js';
+import { SoundSets, CUSTOM_TRACKS_STORAGE_KEY } from './sample-sounds.js';
+import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
+import { autoInitAudio } from '../shared/audio-unlock.js';
 
 function getAddedTracks() {
   try {
@@ -14,11 +16,14 @@ function saveAddedTracks(tracks) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const initBtn = document.getElementById('init-btn');
   const themeSelect = document.getElementById('theme-select');
   const sampleGrid = document.getElementById('sample-grid');
+  const revealTimerEl = document.getElementById('reveal-timer');
+  const lobbyStatusEl = document.getElementById('lobby-status');
+  const goToSequencerLink = document.getElementById('go-to-sequencer-link');
 
-  let audioReady = false;
+  autoInitAudio({ initialize: () => Tone.start() });
+
   const instruments = {};
 
   function getInstrument(sample) {
@@ -32,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function playSample(sample) {
-    if (!audioReady) return;
     const instrument = getInstrument(sample);
     if (sample.note) {
       instrument.triggerAttackRelease(sample.note, sample.duration || '8n');
@@ -41,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  SampleThemes.forEach(theme => {
+  SoundSets.forEach(theme => {
     const option = document.createElement('option');
     option.value = theme.name;
     option.innerText = theme.name;
@@ -49,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function renderGrid() {
-    const theme = SampleThemes.find(t => t.name === themeSelect.value) || SampleThemes[0];
+    const theme = SoundSets.find(t => t.name === themeSelect.value) || SoundSets[0];
     const addedIds = new Set(getAddedTracks().map(t => t.id));
 
     sampleGrid.innerHTML = '';
@@ -80,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
       playBtn.type = 'button';
       playBtn.className = 'play-btn';
       playBtn.innerText = 'Play';
-      playBtn.disabled = !audioReady;
       playBtn.addEventListener('click', () => playSample(sample));
 
       const isAdded = addedIds.has(sample.id);
@@ -109,15 +112,64 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  initBtn.addEventListener('click', async () => {
-    await Tone.start();
-    audioReady = true;
-    initBtn.disabled = true;
-    initBtn.innerText = 'Audio Ready';
-    renderGrid();
-  });
-
   themeSelect.addEventListener('change', renderGrid);
+
+  const session = getSessionParamsFromURL();
+  const themeParam = new URLSearchParams(location.search).get('theme');
+
+  if (session.code && session.id) {
+    goToSequencerLink.hidden = true;
+    revealTimerEl.hidden = false;
+    lobbyStatusEl.hidden = false;
+    lobbyStatusEl.textContent = `Lobby ${session.code}`;
+    themeSelect.disabled = true;
+
+    if (themeParam && SoundSets.some((set) => set.name === themeParam)) {
+      themeSelect.value = themeParam;
+    }
+
+    let countdownHandle = null;
+
+    function startCountdown(endsAt) {
+      clearInterval(countdownHandle);
+      countdownHandle = setInterval(() => {
+        const remainingMs = endsAt - Date.now();
+        const secs = Math.ceil(Math.max(0, remainingMs) / 1000);
+        revealTimerEl.textContent = `00:${String(secs).padStart(2, '0')}`;
+        if (remainingMs <= 0) clearInterval(countdownHandle);
+      }, 250);
+    }
+
+    function applyTheme(theme) {
+      if (theme && SoundSets.some((set) => set.name === theme)) {
+        themeSelect.value = theme;
+        renderGrid();
+      }
+    }
+
+    function goToSequencer() {
+      clearInterval(countdownHandle);
+      location.href = buildSessionURL('../sequencer/sequencer.html', session);
+    }
+
+    connectLobbySocket(session, (msg) => {
+      if (msg.type === 'rejoined') {
+        applyTheme(msg.theme);
+        if (msg.phase === 'reveal') {
+          startCountdown(msg.revealEndsAt);
+        } else if (msg.phase === 'playing' || msg.phase === 'voting' || msg.phase === 'results') {
+          goToSequencer();
+        }
+      } else if (msg.type === 'reveal-started') {
+        applyTheme(msg.theme);
+        startCountdown(msg.revealEndsAt);
+      } else if (msg.type === 'game-started') {
+        goToSequencer();
+      } else if (msg.type === 'error') {
+        lobbyStatusEl.textContent = msg.message;
+      }
+    });
+  }
 
   renderGrid();
 });
