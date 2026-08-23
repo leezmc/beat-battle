@@ -29,3 +29,10 @@ For specific pages, append like this for example (you will not need to append 'p
 ```
 http://localhost:3000/sequencer/sequencer.html
 ```
+
+### Unit Tests
+
+Run in proj dir:
+```
+node --test
+```
