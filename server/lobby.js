@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { SongRegistry } = require('./song');
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_PLAYERS_PER_LOBBY = 8;
@@ -37,7 +38,7 @@ const routes = {
     if (this.lobbyCode) return send(this.ws, { type: 'error', message: 'Already in a lobby.' });
 
     const code = generateCode(this.lobbies);
-    const lobby = { hostId: this.id, players: new Map() };
+      const lobby = { hostId: this.id, players: new Map(), songs: new SongRegistry() };
     lobby.players.set(this.id, { nickname, ws: this.ws });
     this.lobbies.set(code, lobby);
     this.lobbyCode = code;
@@ -68,6 +69,24 @@ const routes = {
   leave() {
     this.leaveLobby();
     send(this.ws, { type: 'left' });
+  },
+
+  'submit-song'(msg) {
+    if (!this.lobbyCode) return send(this.ws, { type: 'error', message: 'Not in a lobby.' });
+    const lobby = this.lobbies.get(this.lobbyCode);
+    if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
+    if (!lobby.songs) lobby.songs = new SongRegistry();
+    const result = lobby.songs.submit(this.id, msg.song);
+    if (!result.ok) return send(this.ws, { type: 'error', message: result.error });
+    send(this.ws, { type: 'song-accepted', entryId: result.entryId });
+  },
+
+  'request-songs'() {
+    if (!this.lobbyCode) return send(this.ws, { type: 'error', message: 'Not in a lobby.' });
+    const lobby = this.lobbies.get(this.lobbyCode);
+    if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
+    if (!lobby.songs) lobby.songs = new SongRegistry();
+    send(this.ws, { type: 'songs', songs: lobby.songs.listAnonymous() });
   },
 };
 
