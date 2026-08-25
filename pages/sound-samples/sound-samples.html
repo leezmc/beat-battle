@@ -12,14 +12,15 @@
     <h1 class="title">Sound Samples</h1>
 
     <section class="controls panel">
-      <button id="init-btn">Initialize Audio</button>
-
       <div class="theme-group">
         <label for="theme-select">Theme</label>
         <select id="theme-select"></select>
       </div>
 
-      <a class="link-btn" href="../sequencer/sequencer.html">Go to Sequencer &rarr;</a>
+      <span id="reveal-timer" class="reveal-timer" hidden></span>
+      <span id="lobby-status" class="lobby-status" hidden></span>
+
+      <a id="go-to-sequencer-link" class="link-btn" href="../sequencer/sequencer.html">Go to Sequencer &rarr;</a>
     </section>
 
     <section id="sample-grid" class="sample-grid panel"></section>

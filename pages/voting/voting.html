@@ -4,16 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Beat Battle Voting</title>
+  <link rel="stylesheet" href="../../css/styles.css">
   <link rel="stylesheet" href="./voting.css">
 </head>
 <body class="voting-body">
   <main class="voting-page">
-    <section class="voting-panel">
+    <h1 class="title">Beat Battle Voting</h1>
+
+    <section class="voting-panel panel">
       <div class="voting-timer" id="beatTimer">00:30</div>
 
-      <h1 class="beat-number" id="current-beat-title">Beat #1</h1>
+      <h2 class="beat-number" id="current-beat-title"></h2>
 
-      <div class="beat-player" id="beatPlayer"></div>
+      <p class="beat-player" id="beatPlayer"></p>
 
       <div class="star-rating" id="starRating">
         <button class="star-button" type="button" data-rating="1">&#9733;</button>
@@ -24,7 +27,7 @@
       </div>
     </section>
 
-    <script src="./voting.js"></script>
+    <script type="module" src="./voting.js"></script>
   </main>
 </body>
 </html>
