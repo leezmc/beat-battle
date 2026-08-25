@@ -1,3 +1,5 @@
+import { SoundSets } from '../sound-samples/sample-sounds.js';
+
 (() => {
   const entryPanel = document.getElementById('entry-panel');
   const lobbyPanel = document.getElementById('lobby-panel');
@@ -5,14 +7,25 @@
   const lobbyCodeInput = document.getElementById('lobby-code');
   const createBtn = document.getElementById('create-btn');
   const joinBtn = document.getElementById('join-btn');
+  const themeSelect = document.getElementById('theme-select');
+  const startBtn = document.getElementById('start-btn');
   const leaveBtn = document.getElementById('leave-btn');
   const errorMessage = document.getElementById('error-message');
   const lobbyCodeDisplay = document.getElementById('lobby-code-display');
   const playerList = document.getElementById('player-list');
   const connectionStatus = document.getElementById('connection-status');
 
+  SoundSets.forEach((set) => {
+    const option = document.createElement('option');
+    option.value = set.name;
+    option.textContent = set.name;
+    themeSelect.appendChild(option);
+  });
+
   let selfId = null;
   let hostId = null;
+  let selfNickname = '';
+  let currentCode = null;
 
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const socket = new WebSocket(`${protocol}//${location.host}/ws`);
@@ -39,18 +52,32 @@
     });
   }
 
-  function enterLobby(code, players, host, self) {
+  function updateHostControls() {
+    const isHost = selfId === hostId;
+    startBtn.hidden = !isHost;
+    themeSelect.disabled = !isHost;
+  }
+
+  function setTheme(theme) {
+    if (theme && themeSelect.value !== theme) themeSelect.value = theme;
+  }
+
+  function enterLobby(code, players, host, self, theme) {
     hostId = host;
     selfId = self;
+    currentCode = code;
     lobbyCodeDisplay.textContent = code;
     renderPlayers(players);
+    setTheme(theme);
     entryPanel.hidden = true;
     lobbyPanel.hidden = false;
+    updateHostControls();
   }
 
   function exitLobby() {
     hostId = null;
     selfId = null;
+    currentCode = null;
     entryPanel.hidden = false;
     lobbyPanel.hidden = true;
     nicknameInput.value = '';
@@ -80,12 +107,19 @@
       case 'created':
       case 'joined':
         clearError();
-        enterLobby(msg.code, msg.players, msg.hostId, msg.selfId);
+        enterLobby(msg.code, msg.players, msg.hostId, msg.selfId, msg.theme);
         break;
       case 'update':
         hostId = msg.hostId;
         renderPlayers(msg.players);
+        setTheme(msg.theme);
+        updateHostControls();
         break;
+      case 'reveal-started': {
+        const params = new URLSearchParams({ code: currentCode, id: selfId, nickname: selfNickname, theme: msg.theme });
+        location.href = `../sound-samples/sound-samples.html?${params.toString()}`;
+        break;
+      }
       case 'left':
         exitLobby();
         break;
@@ -101,6 +135,7 @@
     const nickname = nicknameInput.value.trim();
     if (!nickname) return showError('Enter a nickname first.');
     clearError();
+    selfNickname = nickname;
     socket.send(JSON.stringify({ type: 'create', nickname }));
   });
 
@@ -110,7 +145,16 @@
     if (!nickname) return showError('Enter a nickname first.');
     if (!code) return showError('Enter a lobby code.');
     clearError();
+    selfNickname = nickname;
     socket.send(JSON.stringify({ type: 'join', nickname, code }));
+  });
+
+  themeSelect.addEventListener('change', () => {
+    socket.send(JSON.stringify({ type: 'set-theme', theme: themeSelect.value }));
+  });
+
+  startBtn.addEventListener('click', () => {
+    socket.send(JSON.stringify({ type: 'start' }));
   });
 
   leaveBtn.addEventListener('click', () => {
