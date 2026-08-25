@@ -3,6 +3,10 @@ const { SongRegistry } = require('./song');
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_PLAYERS_PER_LOBBY = 8;
+const REVEAL_DURATION_MS = 10_000;
+const ROUND_DURATION_MS = 60_000;
+const VOTE_DURATION_MS = 30_000;
+const DEFAULT_THEME = 'Techno';
 const lobbies = new Map();
 
 function generateCode(registry) {
@@ -13,9 +17,31 @@ function generateCode(registry) {
   return code;
 }
 
+function createLobby(hostId) {
+  return {
+    hostId,
+    players: new Map(),
+    phase: 'lobby',
+    theme: DEFAULT_THEME,
+    revealEndsAt: null,
+    revealTimer: null,
+    beats: new Map(),
+    songs: new SongRegistry(),
+    roundEndsAt: null,
+    roundTimer: null,
+    voteQueue: [],
+    voteIndex: 0,
+    votes: new Map(),
+    voteEndsAt: null,
+    voteTimer: null,
+    results: null,
+  };
+}
+
 function lobbyState(lobby) {
   return {
     hostId: lobby.hostId,
+    theme: lobby.theme,
     players: Array.from(lobby.players, ([id, player]) => ({ id, nickname: player.nickname })),
   };
 }
@@ -31,6 +57,117 @@ function broadcast(lobby, message) {
   }
 }
 
+function currentVotePayload(lobby) {
+  const ownerId = lobby.voteQueue[lobby.voteIndex];
+  return {
+    voteIndex: lobby.voteIndex,
+    voteEndsAt: lobby.voteEndsAt,
+    currentBeat: lobby.beats.get(ownerId) || null,
+    currentBeatOwnerId: ownerId,
+    currentBeatOwnerNickname: lobby.players.get(ownerId)?.nickname || '',
+  };
+}
+
+function phasePayload(lobby, playerId) {
+  if (lobby.phase === 'reveal') {
+    return { revealEndsAt: lobby.revealEndsAt };
+  }
+  if (lobby.phase === 'playing') {
+    return { roundEndsAt: lobby.roundEndsAt, submitted: lobby.beats.has(playerId) };
+  }
+  if (lobby.phase === 'voting') {
+    return { voteQueue: lobby.voteQueue, ...currentVotePayload(lobby) };
+  }
+  if (lobby.phase === 'results') {
+    return { results: lobby.results };
+  }
+  return {};
+}
+
+function startReveal(lobby, code) {
+  lobby.phase = 'reveal';
+  lobby.revealEndsAt = Date.now() + REVEAL_DURATION_MS;
+  clearTimeout(lobby.revealTimer);
+  lobby.revealTimer = setTimeout(() => startGame(lobby, code), REVEAL_DURATION_MS);
+  broadcast(lobby, { type: 'reveal-started', code, theme: lobby.theme, revealEndsAt: lobby.revealEndsAt });
+}
+
+function startGame(lobby, code) {
+  lobby.phase = 'playing';
+  lobby.beats = new Map();
+  lobby.roundEndsAt = Date.now() + ROUND_DURATION_MS;
+  clearTimeout(lobby.roundTimer);
+  lobby.roundTimer = setTimeout(() => startVoting(lobby, code), ROUND_DURATION_MS);
+  broadcast(lobby, { type: 'game-started', code, roundEndsAt: lobby.roundEndsAt });
+}
+
+function maybeAdvancePlayingEarly(lobby, code) {
+  if (lobby.beats.size >= lobby.players.size) {
+    clearTimeout(lobby.roundTimer);
+    startVoting(lobby, code);
+  }
+}
+
+function startVoting(lobby, code) {
+  lobby.phase = 'voting';
+  lobby.voteQueue = Array.from(lobby.beats.keys());
+  lobby.voteIndex = 0;
+  lobby.votes = new Map(lobby.voteQueue.map((id) => [id, new Map()]));
+
+  if (lobby.voteQueue.length === 0) {
+    finishVoting(lobby, code);
+    return;
+  }
+
+  lobby.voteEndsAt = Date.now() + VOTE_DURATION_MS;
+  clearTimeout(lobby.voteTimer);
+  lobby.voteTimer = setTimeout(() => advanceVote(lobby, code), VOTE_DURATION_MS);
+  broadcast(lobby, { type: 'voting-started', voteQueue: lobby.voteQueue, ...currentVotePayload(lobby) });
+}
+
+function advanceVote(lobby, code) {
+  lobby.voteIndex += 1;
+  if (lobby.voteIndex >= lobby.voteQueue.length) {
+    finishVoting(lobby, code);
+    return;
+  }
+
+  lobby.voteEndsAt = Date.now() + VOTE_DURATION_MS;
+  clearTimeout(lobby.voteTimer);
+  lobby.voteTimer = setTimeout(() => advanceVote(lobby, code), VOTE_DURATION_MS);
+  broadcast(lobby, { type: 'next-beat', ...currentVotePayload(lobby) });
+}
+
+function maybeAdvanceVoteEarly(lobby, code) {
+  const ownerId = lobby.voteQueue[lobby.voteIndex];
+  const votesIn = lobby.votes.get(ownerId).size;
+  const expectedVoters = Math.max(0, lobby.players.size - 1);
+  if (expectedVoters > 0 && votesIn >= expectedVoters) {
+    clearTimeout(lobby.voteTimer);
+    advanceVote(lobby, code);
+  }
+}
+
+function computeResults(lobby) {
+  return Array.from(lobby.players, ([id, player]) => {
+    const votes = lobby.votes.get(id);
+    const voteCount = votes ? votes.size : 0;
+    const averageScore = voteCount
+      ? Array.from(votes.values()).reduce((a, b) => a + b, 0) / voteCount
+      : null;
+    return { playerId: id, nickname: player.nickname, averageScore, voteCount };
+  }).sort((a, b) => (b.averageScore ?? -1) - (a.averageScore ?? -1) || a.nickname.localeCompare(b.nickname));
+}
+
+function finishVoting(lobby, code) {
+  lobby.phase = 'results';
+  clearTimeout(lobby.revealTimer);
+  clearTimeout(lobby.roundTimer);
+  clearTimeout(lobby.voteTimer);
+  lobby.results = computeResults(lobby);
+  broadcast(lobby, { type: 'results', code, results: lobby.results });
+}
+
 const routes = {
   create(msg) {
     const nickname = String(msg.nickname || '').trim().slice(0, 20);
@@ -38,7 +175,7 @@ const routes = {
     if (this.lobbyCode) return send(this.ws, { type: 'error', message: 'Already in a lobby.' });
 
     const code = generateCode(this.lobbies);
-      const lobby = { hostId: this.id, players: new Map(), songs: new SongRegistry() };
+    const lobby = createLobby(this.id);
     lobby.players.set(this.id, { nickname, ws: this.ws });
     this.lobbies.set(code, lobby);
     this.lobbyCode = code;
@@ -55,6 +192,7 @@ const routes = {
 
     const lobby = this.lobbies.get(code);
     if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
+    if (lobby.phase !== 'lobby') return send(this.ws, { type: 'error', message: 'Game already in progress.' });
     if (lobby.players.size >= MAX_PLAYERS_PER_LOBBY) {
       return send(this.ws, { type: 'error', message: 'Lobby is full.' });
     }
@@ -69,6 +207,83 @@ const routes = {
   leave() {
     this.leaveLobby();
     send(this.ws, { type: 'left' });
+  },
+
+  rejoin(msg) {
+    const code = String(msg.code || '').trim().toUpperCase();
+    const rejoinId = String(msg.id || '');
+    const nickname = String(msg.nickname || '').trim().slice(0, 20);
+    if (!code || !rejoinId) return send(this.ws, { type: 'error', message: 'Missing session info.' });
+
+    const lobby = this.lobbies.get(code);
+    if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
+
+    if (lobby.players.has(rejoinId)) {
+      const existing = lobby.players.get(rejoinId);
+      lobby.players.set(rejoinId, { nickname: existing.nickname, ws: this.ws });
+      this.id = rejoinId;
+      this.lobbyCode = code;
+    } else if (lobby.phase === 'lobby') {
+      if (lobby.players.size >= MAX_PLAYERS_PER_LOBBY) {
+        return send(this.ws, { type: 'error', message: 'Lobby is full.' });
+      }
+      lobby.players.set(rejoinId, { nickname: nickname || 'Player', ws: this.ws });
+      this.id = rejoinId;
+      this.lobbyCode = code;
+      broadcast(lobby, { type: 'update', ...lobbyState(lobby) });
+    } else {
+      return send(this.ws, { type: 'error', message: 'Session expired. Return to the lobby.' });
+    }
+
+    send(this.ws, {
+      type: 'rejoined',
+      code,
+      selfId: this.id,
+      ...lobbyState(lobby),
+      phase: lobby.phase,
+      ...phasePayload(lobby, this.id),
+    });
+  },
+
+  'set-theme'(msg) {
+    if (!this.lobbyCode) return;
+    const lobby = this.lobbies.get(this.lobbyCode);
+    if (!lobby) return;
+    if (lobby.hostId !== this.id) return send(this.ws, { type: 'error', message: 'Only the host can set the theme.' });
+    if (lobby.phase !== 'lobby') return;
+    const theme = String(msg.theme || '').trim().slice(0, 40);
+    if (!theme) return;
+    lobby.theme = theme;
+    broadcast(lobby, { type: 'update', ...lobbyState(lobby) });
+  },
+
+  start() {
+    if (!this.lobbyCode) return;
+    const lobby = this.lobbies.get(this.lobbyCode);
+    if (!lobby) return;
+    if (lobby.hostId !== this.id) return send(this.ws, { type: 'error', message: 'Only the host can start the game.' });
+    if (lobby.phase !== 'lobby') return;
+    startReveal(lobby, this.lobbyCode);
+  },
+
+  'submit-beat'(msg) {
+    if (!this.lobbyCode) return;
+    const lobby = this.lobbies.get(this.lobbyCode);
+    if (!lobby || lobby.phase !== 'playing') return;
+    lobby.beats.set(this.id, msg.beat);
+    maybeAdvancePlayingEarly(lobby, this.lobbyCode);
+  },
+
+  'submit-vote'(msg) {
+    if (!this.lobbyCode) return;
+    const lobby = this.lobbies.get(this.lobbyCode);
+    if (!lobby || lobby.phase !== 'voting') return;
+    const ownerId = lobby.voteQueue[lobby.voteIndex];
+    if (!ownerId || !lobby.votes.has(ownerId) || ownerId === this.id) return;
+    const rating = Math.max(1, Math.min(5, parseInt(msg.rating, 10) || 0));
+    if (!rating) return;
+    lobby.votes.get(ownerId).set(this.id, rating);
+    maybeAdvanceVoteEarly(lobby, this.lobbyCode);
   },
 
   'submit-song'(msg) {
@@ -115,6 +330,15 @@ class LobbyConnection {
     const lobby = this.lobbies.get(code);
     this.lobbyCode = null;
     if (!lobby) return;
+
+    if (lobby.phase === 'results') {
+      const stillConnected = Array.from(lobby.players.values())
+        .some((player) => player.ws.readyState === player.ws.OPEN);
+      if (!stillConnected) this.lobbies.delete(code);
+      return;
+    }
+
+    if (lobby.phase !== 'lobby') return;
 
     lobby.players.delete(this.id);
     if (lobby.players.size === 0) {

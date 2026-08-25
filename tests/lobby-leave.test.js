@@ -15,7 +15,7 @@ function fakeWs() {
 function seedOccupiedLobby(lobbies) {
   const hostWs = fakeWs();
   const guestWs = fakeWs();
-  const lobby = { hostId: 'host-1', players: new Map() };
+  const lobby = { hostId: 'host-1', players: new Map(), phase: 'lobby' };
   lobby.players.set('host-1', { nickname: 'Host', ws: hostWs });
   lobby.players.set('p2', { nickname: 'Guest', ws: guestWs });
   lobbies.set('ABCD', lobby);
@@ -56,7 +56,7 @@ test('leave transfers host when the host exits and others remain', () => {
 test('leave deletes an empty lobby after the last player exits', () => {
   const lobbies = new Map();
   const ws = fakeWs();
-  const lobby = { hostId: 'host-1', players: new Map() };
+  const lobby = { hostId: 'host-1', players: new Map(), phase: 'lobby' };
   lobby.players.set('host-1', { nickname: 'Host', ws });
   lobbies.set('ABCD', lobby);
 

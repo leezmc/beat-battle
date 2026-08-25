@@ -13,7 +13,7 @@ function fakeWs() {
 }
 
 function seedLobby(lobbies, code, hostWs) {
-  const lobby = { hostId: 'host-1', players: new Map() };
+  const lobby = { hostId: 'host-1', players: new Map(), phase: 'lobby' };
   lobby.players.set('host-1', { nickname: 'Host', ws: hostWs });
   lobbies.set(code, lobby);
   return lobby;
