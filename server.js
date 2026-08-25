@@ -1,8 +1,8 @@
 const path = require('path');
-const crypto = require('crypto');
 const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const { LobbyConnection } = require('./server/lobby');
 
 const app = express();
 app.get('/', (req, res) => res.redirect('/landing/landing.html'));
