@@ -41,4 +41,17 @@ export const SoundSets = [
   },
 ];
 
+export const ELECTRIC_BASS = {
+  id: 'electric-bass',
+  label: 'Electric Bass',
+  synth: 'MembraneSynth',
+  note: 'C2',
+  duration: '4n',
+  options: {
+    pitchDecay: 0.05,
+    octaves: 4,
+    envelope: { attack: 0.001, decay: 0.45, sustain: 0, release: 0.25 },
+  },
+};
+
 export const CUSTOM_TRACKS_STORAGE_KEY = 'beatbattle:customTracks';
