@@ -36,15 +36,21 @@
             <p class="lobby-label">Lobby Code</p>
             <p id="lobby-code-display" class="lobby-code"></p>
 
+            <div class="theme-group">
+                <label for="theme-select">Theme</label>
+                <select id="theme-select"></select>
+            </div>
+
             <h2>Players</h2>
             <ul id="player-list" class="player-list"></ul>
 
+            <button id="start-btn" type="button" hidden>Start Game</button>
             <button id="leave-btn" type="button" class="secondary">Leave Lobby</button>
         </section>
 
         <p id="connection-status" class="status">Connecting...</p>
     </main>
 
-    <script src="./matchmaking.js"></script>
+    <script type="module" src="./matchmaking.js"></script>
 </body>
 </html>

@@ -1,6 +1,5 @@
-// demo song for pandering
-
 const BAR_STEPS = 16;
+const STEPS_MAX = 128;
 
 const SCALE_DEGREE_TO_PITCH_CLASS = { '1': 'Ab', '2': 'Bb', '3': 'C', '4': 'Db', '5': 'Eb', '6': 'F', '7': 'G' };
 const PITCH_CLASS_SEMITONE = { C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, Gb: 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 };
@@ -87,16 +86,15 @@ const VERSE_RAW_NOTES = [
   { beat: 64, duration: 1, sd: '1', octave: 0, isRest: false },
 ];
 
-const VERSE_BARS = 16;
-
-function convertVerseNotes(raw, startStep) {
+function convertVerseNotes(raw, startStep, maxSteps) {
   return raw
     .filter(n => !n.isRest)
     .map(n => ({
       step: startStep + Math.round((n.beat - 1) * 4),
       note: degreeToNoteName(n.sd, n.octave),
       duration: Math.round(n.duration * 4),
-    }));
+    }))
+    .filter(n => n.step < maxSteps);
 }
 
 const VERSE_DRUM_CELL = { kick: [0, 8], snare: [], hihat: [0, 2, 4, 6, 8, 10, 12, 14] };
@@ -113,19 +111,24 @@ function tileDrums(cell, bars, startStep) {
 }
 
 const VERSE_START = 0;
+const VERSE_BARS = STEPS_MAX / BAR_STEPS;
 const TOTAL_STEPS = VERSE_START + VERSE_BARS * BAR_STEPS;
 
 const verseDrums = tileDrums(VERSE_DRUM_CELL, VERSE_BARS, VERSE_START);
 
 export const CLARITY_DEMO = {
+  version: 1,
   bpm: 128,
   steps: TOTAL_STEPS,
-
-  sections: [
-    { name: 'Verse', startStep: VERSE_START, steps: VERSE_BARS * BAR_STEPS },
-  ],
-
   drums: verseDrums,
-
-  notes: convertVerseNotes(VERSE_RAW_NOTES, VERSE_START),
+  pianoNotes: convertVerseNotes(VERSE_RAW_NOTES, VERSE_START, TOTAL_STEPS),
+  customTracks: [],
 };
+
+const DEMO_PRESETS_BY_NICKNAME = {
+  clairo: CLARITY_DEMO,
+};
+
+export function getDemoPresetForNickname(nickname) {
+  return DEMO_PRESETS_BY_NICKNAME[String(nickname || '').trim().toLowerCase()] || null;
+}

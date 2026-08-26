@@ -4,9 +4,12 @@ import { DrumGrid } from './drum-grid.js';
 import { Sounds } from './sounds.js';
 import { PIANO_NOTES } from './config.js';
 import { loadBeatDraft, saveBeatDraft } from './beat-draft.js';
+import { getDemoPresetForNickname } from './presets.js';
 import { createSongPayload } from './song-payload.mjs';
 import { CUSTOM_TRACKS_STORAGE_KEY, ELECTRIC_BASS } from '../sound-samples/sample-sounds.js';
 import { buildCheckboxTrack } from './checkbox-track.js';
+import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
+import { autoInitAudio } from '../shared/audio-unlock.js';
 
 function loadCustomTrackDefs() {
   try {
@@ -30,7 +33,6 @@ function buildSectionRuler(rulerEl, sections) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const initBtn = document.getElementById('init-btn');
   const toggleSeqBtn = document.getElementById('toggle-seq-btn');
   const bpmInput = document.getElementById('bpm-input');
   const clearBtn = document.getElementById('clear-btn');
@@ -41,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepsInput = document.getElementById('steps-input');
   const sectionRuler = document.getElementById('section-ruler');
 
+  const session = getSessionParamsFromURL();
+
   const tracksPanel = document.querySelector('.tracks-panel');
 
   tracksPanel.addEventListener('wheel', (event) => {
@@ -50,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: false });
 
   const audioAdapter = new AudioEngineAdapter();
+  autoInitAudio(audioAdapter);
   const drumGrid = new DrumGrid();
   const pianoRoll = new PianoRoll('piano-roll-canvas');
 
@@ -169,6 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
     audioAdapter.setBPM(bpm);
   }
 
+  const demoPreset = getDemoPresetForNickname(session.nickname);
+  if (demoPreset) applyBeatDraft(demoPreset);
+
   function stopPlayback() {
     audioAdapter.stopSequencer();
     isPlaying = false;
@@ -177,15 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
     stepCounter.textContent = `Step: -- / ${stepCount}`;
     clearHighlights();
   }
-
-  initBtn.addEventListener('click', async () => {
-    await audioAdapter.initialize();
-    initBtn.disabled = true;
-    toggleSeqBtn.disabled = false;
-    bpmInput.disabled = false;
-    stepsInput.disabled = false;
-    clearBtn.disabled = false;
-  });
 
   bpmInput.addEventListener('change', (event) => {
     let newBPM = Math.max(1, Math.min(300, parseInt(event.target.value, 10)));
@@ -265,4 +264,73 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }, stepCount);
   });
+
+  if (session.code && session.id) {
+    const roundTimerEl = document.getElementById('round-timer');
+    const submitBtn = document.getElementById('submit-beat-btn');
+    const lobbyStatus = document.getElementById('lobby-status');
+    roundTimerEl.hidden = false;
+    submitBtn.hidden = false;
+    lobbyStatus.textContent = `Lobby ${session.code}`;
+
+    let hasSubmitted = false;
+    let countdownHandle = null;
+
+    function formatTime(ms) {
+      const secs = Math.ceil(Math.max(0, ms) / 1000);
+      return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+    }
+
+    function startCountdown(endsAt) {
+      clearInterval(countdownHandle);
+      countdownHandle = setInterval(() => {
+        const remainingMs = endsAt - Date.now();
+        roundTimerEl.textContent = formatTime(remainingMs);
+        if (remainingMs <= 0) {
+          clearInterval(countdownHandle);
+          submitBeat();
+        }
+      }, 250);
+    }
+
+    function submitBeat() {
+      if (hasSubmitted) return;
+      hasSubmitted = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitted — waiting for others…';
+      socket.send(JSON.stringify({ type: 'submit-beat', beat: createBeatDraft() }));
+    }
+
+    function goToPhase(phase, theme) {
+      if (phase === 'reveal') {
+        location.href = `${buildSessionURL('../sound-samples/sound-samples.html', session)}&theme=${encodeURIComponent(theme || '')}`;
+        return;
+      }
+      const path = phase === 'voting' ? '../voting/voting.html' : '../ranking/ranking.html';
+      location.href = buildSessionURL(path, session);
+    }
+
+    const socket = connectLobbySocket(session, (msg) => {
+      if (msg.type === 'rejoined') {
+        if (msg.phase === 'playing') {
+          startCountdown(msg.roundEndsAt);
+          if (msg.submitted) {
+            hasSubmitted = true;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitted — waiting for others…';
+          }
+        } else if (msg.phase === 'reveal') {
+          goToPhase('reveal', msg.theme);
+        } else if (msg.phase === 'voting' || msg.phase === 'results') {
+          goToPhase(msg.phase);
+        }
+      } else if (msg.type === 'voting-started') {
+        goToPhase('voting');
+      } else if (msg.type === 'error') {
+        lobbyStatus.textContent = msg.message;
+      }
+    });
+
+    submitBtn.addEventListener('click', submitBeat);
+  }
 });

@@ -13,25 +13,28 @@
   <h1 class="title">Beat Sequencer</h1>
 
   <section class="controls panel">
-    <button id="init-btn">Initialize Audio</button>
-    <button id="toggle-seq-btn" disabled>Play Sequencer</button>
+    <button id="toggle-seq-btn">Play Sequencer</button>
 
     <div class="bpm-group">
       <label for="bpm-input">BPM</label>
-      <input type="number" id="bpm-input" min="1" max="300" value="120" disabled>
+      <input type="number" id="bpm-input" min="1" max="300" value="120">
     </div>
 
     <div class="steps-group">
       <label for="steps-input">Steps</label>
-      <input type="number" id="steps-input" min="1" max="64" value="50" disabled>
+      <input type="number" id="steps-input" min="1" max="64" value="50">
     </div>
 
-    <button id="clear-btn" disabled>Clear Track</button>
+    <button id="clear-btn">Clear Track</button>
     <button id="save-draft-btn" type="button">Save Draft</button>
     <button id="load-draft-btn" type="button">Load Draft</button>
 
     <span id="step-counter" class="step-counter">Step: -- / 16</span>
     <span id="draft-status"></span>
+
+    <span id="round-timer" class="round-timer" hidden>01:00</span>
+    <button id="submit-beat-btn" type="button" hidden>Submit Beat</button>
+    <span id="lobby-status" class="lobby-status"></span>
   </section>
 
   <section class="tracks-panel panel">
