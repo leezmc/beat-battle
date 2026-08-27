@@ -280,9 +280,9 @@ const routes = {
     if (!lobby || lobby.phase !== 'voting') return;
     const ownerId = lobby.voteQueue[lobby.voteIndex];
     if (!ownerId || !lobby.votes.has(ownerId) || ownerId === this.id) return;
-    const rating = Math.max(1, Math.min(5, parseInt(msg.rating, 10) || 0));
-    if (!rating) return;
-    lobby.votes.get(ownerId).set(this.id, rating);
+    const rawRating = parseInt(msg.rating, 10);
+    if (!Number.isInteger(rawRating) || rawRating < 1 || rawRating > 5) return;
+    lobby.votes.get(ownerId).set(this.id, rawRating);
     maybeAdvanceVoteEarly(lobby, this.lobbyCode);
   },
 
@@ -290,7 +290,6 @@ const routes = {
     if (!this.lobbyCode) return send(this.ws, { type: 'error', message: 'Not in a lobby.' });
     const lobby = this.lobbies.get(this.lobbyCode);
     if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
-    if (!lobby.songs) lobby.songs = new SongRegistry();
     const result = lobby.songs.submit(this.id, msg.song);
     if (!result.ok) return send(this.ws, { type: 'error', message: result.error });
     send(this.ws, { type: 'song-accepted', entryId: result.entryId });
@@ -300,7 +299,6 @@ const routes = {
     if (!this.lobbyCode) return send(this.ws, { type: 'error', message: 'Not in a lobby.' });
     const lobby = this.lobbies.get(this.lobbyCode);
     if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
-    if (!lobby.songs) lobby.songs = new SongRegistry();
     send(this.ws, { type: 'songs', songs: lobby.songs.listAnonymous() });
   },
 };

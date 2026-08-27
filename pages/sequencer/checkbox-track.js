@@ -4,7 +4,7 @@ export function buildCheckboxTrack(trackEl, steps, prevChecked) {
   return Array.from({ length: steps }, (_, step) => {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.checked = Boolean(prevChecked && prevChecked[step]);
+    checkbox.checked = !!prevChecked?.[step];
     trackEl.appendChild(checkbox);
     return checkbox;
   });

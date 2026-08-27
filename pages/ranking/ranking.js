@@ -29,9 +29,7 @@ function render(results) {
 }
 
 connectLobbySocket(session, (msg) => {
-  if (msg.type === 'rejoined' && msg.phase === 'results') {
-    render(msg.results);
-  } else if (msg.type === 'results') {
+  if ((msg.type === 'rejoined' && msg.phase === 'results') || msg.type === 'results') {
     render(msg.results);
   } else if (msg.type === 'error') {
     listEl.textContent = msg.message;

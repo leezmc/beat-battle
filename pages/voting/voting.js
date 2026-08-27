@@ -111,7 +111,7 @@ socket = connectLobbySocket(session, (msg) => {
 
 starButtons.forEach((starButton) => {
   starButton.addEventListener('click', () => {
-    if (hasVotedThisBeat || starButton.disabled || !socket) return;
+    if (hasVotedThisBeat || starButton.disabled) return;
     const selectedRating = Number(starButton.dataset.rating);
 
     starButtons.forEach((button) => {
