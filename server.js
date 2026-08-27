@@ -20,7 +20,6 @@ wss.on('connection', (ws) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0';
-server.listen(PORT, HOST, () => {
-  console.log(`Beat Battle listening on http://${HOST}:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Beat Battle listening on http://localhost:${PORT}`);
 });
