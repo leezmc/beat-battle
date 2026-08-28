@@ -1,5 +1,6 @@
 import { Sounds } from './sounds.js';
-import * as Tone from 'https://unpkg.com/tone?module';
+
+const Tone = window.Tone;
 
 export class AudioEngineAdapter {
   constructor() {

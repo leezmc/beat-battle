@@ -9,6 +9,7 @@ app.get('/', (req, res) => res.redirect('/landing/landing.html'));
 app.use(express.static(path.join(__dirname, 'pages')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/vendor/tone', express.static(path.join(__dirname, 'node_modules/tone/build')));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });

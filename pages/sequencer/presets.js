@@ -1,5 +1,5 @@
 const BAR_STEPS = 16;
-const STEPS_MAX = 128;
+const STEPS_MAX = 256;
 
 const SCALE_DEGREE_TO_PITCH_CLASS = { '1': 'Ab', '2': 'Bb', '3': 'C', '4': 'Db', '5': 'Eb', '6': 'F', '7': 'G' };
 const PITCH_CLASS_SEMITONE = { C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, Gb: 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 };
@@ -125,8 +125,22 @@ export const CLARITY_DEMO = {
   customTracks: [],
 };
 
+const TRUNCATED_STEPS = 128;
+const TRUNCATED_BARS = TRUNCATED_STEPS / BAR_STEPS;
+const truncatedDrums = tileDrums(VERSE_DRUM_CELL, TRUNCATED_BARS, VERSE_START);
+
+export const CLARITY_DEMO_TRUNCATED = {
+  version: 1,
+  bpm: 128,
+  steps: TRUNCATED_STEPS,
+  drums: truncatedDrums,
+  pianoNotes: convertVerseNotes(VERSE_RAW_NOTES, VERSE_START, TRUNCATED_STEPS),
+  customTracks: [],
+};
+
 const DEMO_PRESETS_BY_NICKNAME = {
-  clairo: CLARITY_DEMO,
+  mike: CLARITY_DEMO,
+  miket: CLARITY_DEMO_TRUNCATED,
 };
 
 export function getDemoPresetForNickname(nickname) {

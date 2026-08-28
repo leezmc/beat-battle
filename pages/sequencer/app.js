@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   addCustomTrack(ELECTRIC_BASS, document.getElementById('bass-track'));
-  loadCustomTrackDefs().forEach(addCustomTrack);
+  loadCustomTrackDefs().forEach((def) => addCustomTrack(def));
 
   function buildCustomTracks(steps) {
     const prevChecked = customTracks.map(t => t.boxes.map(b => b.checked));

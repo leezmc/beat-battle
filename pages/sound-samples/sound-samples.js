@@ -1,5 +1,6 @@
-import * as Tone from 'https://unpkg.com/tone?module';
 import { SoundSets, CUSTOM_TRACKS_STORAGE_KEY } from './sample-sounds.js';
+
+const Tone = window.Tone;
 import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
 import { autoInitAudio } from '../shared/audio-unlock.js';
 
