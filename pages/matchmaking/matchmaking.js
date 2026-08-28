@@ -59,7 +59,7 @@ import { SoundSets } from '../sound-samples/sample-sounds.js';
   }
 
   function setTheme(theme) {
-    if (theme && themeSelect.value !== theme) themeSelect.value = theme;
+    if (themeSelect.value !== theme) themeSelect.value = theme;
   }
 
   function enterLobby(code, players, host, self, theme) {

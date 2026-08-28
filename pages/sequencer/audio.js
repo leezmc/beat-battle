@@ -23,8 +23,7 @@ export class AudioEngineAdapter {
   }
 
   playSound(soundEnum, time) {
-    const player = this.players[soundEnum];
-    if (player) player.start(time);
+    this.players[soundEnum].start(time);
   }
 
   playSynthNote(note, durationInSteps, time) {

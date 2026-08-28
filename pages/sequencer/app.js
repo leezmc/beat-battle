@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function goToPhase(phase, theme) {
       if (phase === 'reveal') {
-        location.href = `${buildSessionURL('../sound-samples/sound-samples.html', session)}&theme=${encodeURIComponent(theme || '')}`;
+        location.href = `${buildSessionURL('../sound-samples/sound-samples.html', session)}&theme=${encodeURIComponent(theme)}`;
         return;
       }
       const path = phase === 'voting' ? '../voting/voting.html' : '../ranking/ranking.html';
