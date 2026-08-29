@@ -56,15 +56,21 @@ function broadcast(lobby, message) {
   }
 }
 
-function currentVotePayload(lobby) {
+function currentVotePayload(lobby, playerId) {
   const ownerId = lobby.voteQueue[lobby.voteIndex];
   return {
     voteIndex: lobby.voteIndex,
+    totalBeats: lobby.voteQueue.length,
     voteEndsAt: lobby.voteEndsAt,
     currentBeat: lobby.songs.getSong(ownerId),
-    currentBeatOwnerId: ownerId,
-    currentBeatOwnerNickname: lobby.players.get(ownerId)?.nickname || '',
+    canVote: ownerId !== playerId,
   };
+}
+
+function broadcastCurrentVote(lobby, type) {
+  for (const [playerId, { ws }] of lobby.players) {
+    send(ws, { type, ...currentVotePayload(lobby, playerId) });
+  }
 }
 
 function phasePayload(lobby, playerId) {
@@ -75,7 +81,7 @@ function phasePayload(lobby, playerId) {
     return { roundEndsAt: lobby.roundEndsAt, submitted: lobby.songs.has(playerId) };
   }
   if (lobby.phase === 'voting') {
-    return { voteQueue: lobby.voteQueue, ...currentVotePayload(lobby) };
+    return currentVotePayload(lobby, playerId);
   }
   if (lobby.phase === 'results') {
     return { results: lobby.results };
@@ -121,7 +127,7 @@ function startVoting(lobby, code) {
   lobby.voteEndsAt = Date.now() + VOTE_DURATION_MS;
   clearTimeout(lobby.voteTimer);
   lobby.voteTimer = setTimeout(() => advanceVote(lobby, code), VOTE_DURATION_MS);
-  broadcast(lobby, { type: 'voting-started', voteQueue: lobby.voteQueue, ...currentVotePayload(lobby) });
+  broadcastCurrentVote(lobby, 'voting-started');
 }
 
 function advanceVote(lobby, code) {
@@ -134,7 +140,7 @@ function advanceVote(lobby, code) {
   lobby.voteEndsAt = Date.now() + VOTE_DURATION_MS;
   clearTimeout(lobby.voteTimer);
   lobby.voteTimer = setTimeout(() => advanceVote(lobby, code), VOTE_DURATION_MS);
-  broadcast(lobby, { type: 'next-beat', ...currentVotePayload(lobby) });
+  broadcastCurrentVote(lobby, 'next-beat');
 }
 
 function maybeAdvanceVoteEarly(lobby, code) {

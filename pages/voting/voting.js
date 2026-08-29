@@ -68,16 +68,16 @@ function startCountdown(endsAt) {
   }, 250);
 }
 
-function showBeat({ currentBeat, currentBeatOwnerId, currentBeatOwnerNickname, voteEndsAt, voteIndex }) {
+function showBeat({ currentBeat, canVote, voteEndsAt, voteIndex, totalBeats: messageTotalBeats }) {
   hasVotedThisBeat = false;
-  titleEl.textContent = `${currentBeatOwnerNickname}'s Beat (${voteIndex + 1}/${totalBeats})`;
+  if (messageTotalBeats) totalBeats = messageTotalBeats;
+  titleEl.textContent = `Beat ${voteIndex + 1} of ${totalBeats}`;
 
-  const isOwnBeat = currentBeatOwnerId === session.id;
   starButtons.forEach((button) => {
     button.classList.remove('selected');
-    button.disabled = isOwnBeat;
+    button.disabled = !canVote;
   });
-  playerStatusEl.textContent = isOwnBeat ? 'This is your beat — sit back and listen!' : 'Now playing…';
+  playerStatusEl.textContent = canVote ? 'Now playing…' : 'This is your beat — sit back and listen!';
 
   playBeat(currentBeat);
   startCountdown(voteEndsAt);
@@ -95,13 +95,11 @@ autoInitAudio(audioAdapter);
 socket = connectLobbySocket(session, (msg) => {
   if (msg.type === 'rejoined') {
     if (msg.phase === 'voting') {
-      totalBeats = msg.voteQueue.length;
       showBeat(msg);
     } else if (msg.phase === 'results') {
       goToResults(msg.results);
     }
   } else if (msg.type === 'voting-started') {
-    totalBeats = msg.voteQueue.length;
     showBeat(msg);
   } else if (msg.type === 'next-beat') {
     showBeat(msg);
