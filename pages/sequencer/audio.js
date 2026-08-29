@@ -1,5 +1,5 @@
 import { Sounds } from './sounds.js';
-import { DRUM_TRACK_IDS, PIANO_TRACK_ID, normalizeTrackMix } from './track-mix.mjs';
+import { DRUM_TRACK_IDS, PIANO_TRACK_ID, normalizeTrackMix, normalizeMasterMix } from './track-mix.mjs';
 
 const Tone = window.Tone;
 
@@ -13,11 +13,16 @@ function filterHz(value) {
   return 200 * (100 ** value);
 }
 
+function limiterThresholdDb(value) {
+  return -24 * value;
+}
+
 export class AudioEngineAdapter {
   constructor() {
     Tone.Transport.bpm.value = 120;
 
-    this.masterGain = new Tone.Gain(1).toDestination();
+    this.limiter = new Tone.Limiter(0).toDestination();
+    this.masterGain = new Tone.Gain(1).connect(this.limiter);
     this.reverb = new Tone.Reverb({ decay: 1.6, preDelay: 0.02, wet: 1 });
     this.delay = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.28, wet: 1 });
     this.reverb.connect(this.masterGain);
@@ -75,6 +80,12 @@ export class AudioEngineAdapter {
     channel.reverbSend.gain.value = next.reverb;
     channel.delaySend.gain.value = next.delay;
     channel.filter.frequency.value = filterHz(next.filter);
+  }
+
+  applyMasterMix(mix = {}) {
+    const next = normalizeMasterMix(mix);
+    this.masterGain.gain.value = next.volume;
+    this.limiter.threshold.value = limiterThresholdDb(next.limiter);
   }
 
   applyTrackMix(trackMix = {}) {

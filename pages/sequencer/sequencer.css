@@ -22,6 +22,39 @@
   gap: 0.2rem;
 }
 
+.master-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 140px;
+}
+
+.master-heading {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.master-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.master-group input[type="range"] {
+  width: 90px;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
 #bpm-input,
 #steps-input {
   width: 70px;

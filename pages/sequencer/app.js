@@ -10,7 +10,7 @@ import { CUSTOM_TRACKS_STORAGE_KEY, ELECTRIC_BASS } from '../sound-samples/sampl
 import { buildCheckboxTrack } from './checkbox-track.js';
 import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
 import { autoInitAudio } from '../shared/audio-unlock.js';
-import { PIANO_TRACK_ID, copyTrackMix, normalizeTrackMix } from './track-mix.mjs';
+import { PIANO_TRACK_ID, copyTrackMix, normalizeTrackMix, normalizeMasterMix } from './track-mix.mjs';
 import { createTrackStrip } from './track-strip.js';
 
 function loadCustomTrackDefs() {
@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const draftStatus = document.getElementById('draft-status');
   const stepCounter = document.getElementById('step-counter');
   const stepsInput = document.getElementById('steps-input');
+  const masterVolumeInput = document.getElementById('master-volume');
+  const masterLimiterInput = document.getElementById('master-limiter');
   const sectionRuler = document.getElementById('section-ruler');
 
   const session = getSessionParamsFromURL();
@@ -65,8 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const customTracks = [];
   const trackMixState = copyTrackMix();
+  const masterMixState = normalizeMasterMix();
   const trackStrips = new Map();
   const pianoPanel = document.querySelector('.piano-roll-panel');
+
+  function setMasterMix(mix) {
+    Object.assign(masterMixState, normalizeMasterMix(mix));
+    masterVolumeInput.value = String(Math.round(masterMixState.volume * 100));
+    masterLimiterInput.value = String(Math.round(masterMixState.limiter * 100));
+    audioAdapter.applyMasterMix(masterMixState);
+  }
 
   function setTrackMix(trackId, mix, muteTarget) {
     trackMixState[trackId] = normalizeTrackMix(mix);
@@ -178,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         steps: activeSteps(track.boxes),
       })),
       trackMix: copyTrackMix(trackMixState, customTracks.map((track) => track.def.id)),
+      masterMix: normalizeMasterMix(masterMixState),
     };
   }
 
@@ -221,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
           || drumGrid[`${trackId}Track`];
       setTrackMix(trackId, mix, muteTarget);
     });
+    setMasterMix(beatDraft.masterMix);
   }
 
   const demoPreset = getDemoPresetForNickname(session.nickname);
@@ -239,6 +251,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let newBPM = Math.max(1, Math.min(300, parseInt(event.target.value, 10)));
     event.target.value = newBPM;
     audioAdapter.setBPM(newBPM);
+  });
+
+  masterVolumeInput.addEventListener('input', () => {
+    setMasterMix({ ...masterMixState, volume: Number(masterVolumeInput.value) / 100 });
+  });
+  masterLimiterInput.addEventListener('input', () => {
+    setMasterMix({ ...masterMixState, limiter: Number(masterLimiterInput.value) / 100 });
   });
 
   stepsInput.addEventListener('change', (event) => {
@@ -286,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleSeqBtn.textContent = 'Stop Sequencer';
     stepsInput.disabled = true;
     audioAdapter.applyTrackMix(trackMixState);
+    audioAdapter.applyMasterMix(masterMixState);
 
     audioAdapter.startSequencer((time, currentStep) => {
       const activeDrums = drumGrid.getActiveDrums(currentStep);

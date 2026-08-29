@@ -25,6 +25,16 @@
       <input type="number" id="steps-input" min="1" max="256" value="50">
     </div>
 
+    <div class="master-group">
+      <span class="master-heading">Master</span>
+      <label for="master-volume">Vol
+        <input id="master-volume" type="range" min="0" max="100" value="100" title="Master volume">
+      </label>
+      <label for="master-limiter">Limit
+        <input id="master-limiter" type="range" min="0" max="100" value="0" title="Master limiter">
+      </label>
+    </div>
+
     <button id="clear-btn">Clear Track</button>
     <button id="save-draft-btn" type="button">Save Draft</button>
     <button id="load-draft-btn" type="button">Load Draft</button>

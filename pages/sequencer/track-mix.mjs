@@ -25,6 +25,11 @@ export function normalizeTrackMix(mix = {}) {
   };
 }
 
+export const DEFAULT_MASTER_MIX = Object.freeze({
+  volume: 1,
+  limiter: 0,
+});
+
 export function copyTrackMix(trackMix = {}, extraIds = []) {
   const ids = [...DRUM_TRACK_IDS, PIANO_TRACK_ID, ...extraIds];
   const copied = {};
@@ -33,4 +38,11 @@ export function copyTrackMix(trackMix = {}, extraIds = []) {
     copied[id] = normalizeTrackMix(trackMix[id]);
   }
   return copied;
+}
+
+export function normalizeMasterMix(mix = {}) {
+  return {
+    volume: clamp01(mix.volume, DEFAULT_MASTER_MIX.volume),
+    limiter: clamp01(mix.limiter, DEFAULT_MASTER_MIX.limiter),
+  };
 }
