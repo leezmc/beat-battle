@@ -43,9 +43,9 @@ test('createSongPayload keeps only contract fields and is JSON-safe', async () =
 });
 
 test('client submit message matches the server song contract', async () => {
-  const { buildSubmitSongMessage } = await import('../pages/sequencer/song-payload.mjs');
+  const { buildSubmitBeatMessage } = await import('../pages/sequencer/song-payload.mjs');
 
-  const message = buildSubmitSongMessage({
+  const message = buildSubmitBeatMessage({
     bpm: 100,
     steps: 8,
     drums: { kick: [0], snare: [], hihat: [] },
@@ -53,8 +53,8 @@ test('client submit message matches the server song contract', async () => {
     customTracks: [],
   });
 
-  assert.strictEqual(message.type, 'submit-song');
-  const result = validateSong(message.song);
+  assert.strictEqual(message.type, 'submit-beat');
+  const result = validateSong(message.beat);
   assert.strictEqual(result.ok, true);
   assert.strictEqual(result.song.bpm, 100);
   assert.strictEqual(result.song.steps, 8);
