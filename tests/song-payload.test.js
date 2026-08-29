@@ -39,6 +39,14 @@ test('createSongPayload keeps only contract fields and is JSON-safe', async () =
     options: { harmonicity: 8, modulationIndex: 2 },
     steps: [1, 5],
   }]);
+  assert.deepStrictEqual(payload.trackMix.kick, {
+    volume: 1,
+    mute: false,
+    reverb: 0,
+    delay: 0,
+    filter: 1,
+  });
+  assert.deepStrictEqual(payload.trackMix['techno-zap'].mute, false);
   assert.doesNotThrow(() => JSON.parse(JSON.stringify(payload)));
 });
 
@@ -58,4 +66,6 @@ test('client submit message matches the server song contract', async () => {
   assert.strictEqual(result.ok, true);
   assert.strictEqual(result.song.bpm, 100);
   assert.strictEqual(result.song.steps, 8);
+  assert.strictEqual(result.song.trackMix.kick.volume, 1);
+  assert.strictEqual(result.song.trackMix.piano.mute, false);
 });

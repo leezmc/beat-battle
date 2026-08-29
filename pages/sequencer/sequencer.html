@@ -42,26 +42,18 @@
       <span>Sections</span>
     </div>
 
-    <div id="kick-track" class="track">
-      <span>Kick</span>
-    </div>
-
-    <div id="snare-track" class="track">
-      <span>Snare</span>
-    </div>
-
-    <div id="hihat-track" class="track">
-      <span>HiHat</span>
-    </div>
-
-    <div id="bass-track" class="track">
-      <span>Electric Bass</span>
-    </div>
+    <div id="kick-track" class="track"></div>
+    <div id="snare-track" class="track"></div>
+    <div id="hihat-track" class="track"></div>
+    <div id="bass-track" class="track"></div>
 
   </section>
 
   <section class="piano-roll-panel panel">
-    <h2>Synth Piano Roll</h2>
+    <div class="piano-roll-header">
+      <h2>Synth Piano Roll</h2>
+      <div id="piano-track-strip"></div>
+    </div>
     <div id="piano-roll" class="piano-roll"></div>
     <canvas id="piano-roll-canvas" width="800" height="260"></canvas>
   </section>

@@ -64,3 +64,23 @@ test('validateSong rejects unsafe custom-track synth data', () => {
   });
   assert.deepStrictEqual(validateSong(polluted), { ok: false, error: 'Invalid custom tracks.' });
 });
+
+test('validateSong accepts track mix and rejects invalid mix entries', () => {
+  const accepted = validateSong(validSong({
+    trackMix: {
+      kick: { volume: 0.5, mute: true, reverb: 0.2, delay: 0, filter: 1 },
+    },
+  }));
+  assert.strictEqual(accepted.ok, true);
+  assert.deepStrictEqual(accepted.song.trackMix.kick, {
+    volume: 0.5,
+    mute: true,
+    reverb: 0.2,
+    delay: 0,
+    filter: 1,
+  });
+
+  assert.deepStrictEqual(validateSong(validSong({
+    trackMix: { kick: { volume: 2, mute: false, reverb: 0, delay: 0, filter: 1 } },
+  })), { ok: false, error: 'Invalid track mix.' });
+});

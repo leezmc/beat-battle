@@ -23,6 +23,7 @@ function playBeat(beatDraft) {
   audioAdapter.stopSequencer();
   if (!beatDraft) return;
   audioAdapter.setBPM(beatDraft.bpm);
+  audioAdapter.applyTrackMix(beatDraft.trackMix);
 
   const kickSet = new Set(beatDraft.drums.kick);
   const snareSet = new Set(beatDraft.drums.snare);

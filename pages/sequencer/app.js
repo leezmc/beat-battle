@@ -10,6 +10,8 @@ import { CUSTOM_TRACKS_STORAGE_KEY, ELECTRIC_BASS } from '../sound-samples/sampl
 import { buildCheckboxTrack } from './checkbox-track.js';
 import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
 import { autoInitAudio } from '../shared/audio-unlock.js';
+import { PIANO_TRACK_ID, copyTrackMix, normalizeTrackMix } from './track-mix.mjs';
+import { createTrackStrip } from './track-strip.js';
 
 function loadCustomTrackDefs() {
   try {
@@ -62,6 +64,32 @@ document.addEventListener('DOMContentLoaded', () => {
   let stepCount = parseInt(stepsInput.value, 10);
 
   const customTracks = [];
+  const trackMixState = copyTrackMix();
+  const trackStrips = new Map();
+  const pianoPanel = document.querySelector('.piano-roll-panel');
+
+  function setTrackMix(trackId, mix, muteTarget) {
+    trackMixState[trackId] = normalizeTrackMix(mix);
+    audioAdapter.applyChannelMix(trackId, trackMixState[trackId]);
+    if (muteTarget) muteTarget.classList.toggle('is-muted', trackMixState[trackId].mute);
+  }
+
+  function mountTrackStrip(trackEl, trackId, label, options = {}) {
+    if (trackStrips.has(trackId)) return;
+    if (!trackMixState[trackId]) trackMixState[trackId] = normalizeTrackMix();
+
+    const strip = createTrackStrip({
+      label,
+      mix: trackMixState[trackId],
+      hideLabel: options.hideLabel,
+      onChange(mix) {
+        setTrackMix(trackId, mix, options.muteTarget || trackEl);
+      },
+    });
+    trackEl.prepend(strip.root);
+    trackStrips.set(trackId, strip);
+    setTrackMix(trackId, trackMixState[trackId], options.muteTarget || trackEl);
+  }
 
   function addCustomTrack(def, existingTrackEl) {
     if (!def?.id || customTracks.some(track => track.def.id === def.id)) return;
@@ -71,17 +99,22 @@ document.addEventListener('DOMContentLoaded', () => {
       trackEl = document.createElement('div');
       trackEl.className = 'track';
       trackEl.id = `custom-track-${def.id}`;
-
-      const label = document.createElement('span');
-      label.innerText = def.label || def.id;
-      label.title = label.innerText;
-      trackEl.appendChild(label);
-
       tracksPanel.appendChild(trackEl);
     }
 
+    mountTrackStrip(trackEl, def.id, def.label || def.id);
     customTracks.push({ def, trackEl, boxes: [] });
   }
+
+  mountTrackStrip(drumGrid.kickTrack, 'kick', 'Kick');
+  mountTrackStrip(drumGrid.snareTrack, 'snare', 'Snare');
+  mountTrackStrip(drumGrid.hihatTrack, 'hihat', 'HiHat');
+  mountTrackStrip(
+    document.getElementById('piano-track-strip'),
+    PIANO_TRACK_ID,
+    'Synth',
+    { hideLabel: true, muteTarget: pianoPanel },
+  );
 
   addCustomTrack(ELECTRIC_BASS, document.getElementById('bass-track'));
   loadCustomTrackDefs().forEach((def) => addCustomTrack(def));
@@ -144,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ...track.def,
         steps: activeSteps(track.boxes),
       })),
+      trackMix: copyTrackMix(trackMixState, customTracks.map((track) => track.def.id)),
     };
   }
 
@@ -176,6 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const bpm = Math.max(1, Math.min(300, parseInt(beatDraft.bpm, 10) || 120));
     bpmInput.value = bpm;
     audioAdapter.setBPM(bpm);
+
+    const nextMix = copyTrackMix(beatDraft.trackMix, customTracks.map((track) => track.def.id));
+    Object.assign(trackMixState, nextMix);
+    Object.entries(nextMix).forEach(([trackId, mix]) => {
+      trackStrips.get(trackId)?.setMix(mix);
+      const muteTarget = trackId === PIANO_TRACK_ID
+        ? pianoPanel
+        : customTracks.find((track) => track.def.id === trackId)?.trackEl
+          || drumGrid[`${trackId}Track`];
+      setTrackMix(trackId, mix, muteTarget);
+    });
   }
 
   const demoPreset = getDemoPresetForNickname(session.nickname);
@@ -240,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isPlaying = true;
     toggleSeqBtn.textContent = 'Stop Sequencer';
     stepsInput.disabled = true;
+    audioAdapter.applyTrackMix(trackMixState);
 
     audioAdapter.startSequencer((time, currentStep) => {
       const activeDrums = drumGrid.getActiveDrums(currentStep);
