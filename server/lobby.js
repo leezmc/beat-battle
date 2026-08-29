@@ -160,7 +160,13 @@ function computeResults(lobby) {
     const averageScore = voteCount
       ? Array.from(votes.values()).reduce((a, b) => a + b, 0) / voteCount
       : null;
-    return { playerId: id, nickname: player.nickname, averageScore, voteCount };
+    return {
+      playerId: id,
+      nickname: player.nickname,
+      averageScore,
+      voteCount,
+      beat: lobby.songs.getSong(id),
+    };
   }).sort((a, b) => (b.averageScore ?? -1) - (a.averageScore ?? -1) || a.nickname.localeCompare(b.nickname));
 }
 

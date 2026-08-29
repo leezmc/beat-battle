@@ -7,6 +7,22 @@ if (!session.code || !session.id) {
 
 const listEl = document.getElementById('results-list');
 
+function downloadBeat(result) {
+  const safeName = result.nickname
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'beat';
+  const file = new Blob([JSON.stringify(result.beat, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${safeName}-beat.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function render(results) {
   listEl.innerHTML = '';
   results.forEach((result) => {
@@ -22,8 +38,21 @@ function render(results) {
       ? `${result.averageScore.toFixed(1)} ★ (${result.voteCount} vote${result.voteCount === 1 ? '' : 's'})`
       : 'No votes';
 
+    const details = document.createElement('div');
+    details.className = 'result-details';
+    details.appendChild(score);
+
+    if (result.beat) {
+      const downloadButton = document.createElement('button');
+      downloadButton.className = 'result-download';
+      downloadButton.type = 'button';
+      downloadButton.textContent = 'Download Data';
+      downloadButton.addEventListener('click', () => downloadBeat(result));
+      details.appendChild(downloadButton);
+    }
+
     li.appendChild(name);
-    li.appendChild(score);
+    li.appendChild(details);
     listEl.appendChild(li);
   });
 }
