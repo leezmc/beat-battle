@@ -1,6 +1,6 @@
 import { AudioEngineAdapter } from '../sequencer/audio.js';
 import { Sounds } from '../sequencer/sounds.js';
-import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
+import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL, cacheResults } from '../shared/lobby-socket.js';
 import { autoInitAudio } from '../shared/audio-unlock.js';
 
 const session = getSessionParamsFromURL();
@@ -81,9 +81,10 @@ function showBeat({ currentBeat, currentBeatOwnerId, currentBeatOwnerNickname, v
   startCountdown(voteEndsAt);
 }
 
-function goToResults() {
+function goToResults(results) {
   audioAdapter.stopSequencer();
   clearInterval(countdownHandle);
+  if (results) cacheResults(session.code, results);
   location.href = buildSessionURL('../ranking/ranking.html', session);
 }
 
@@ -95,7 +96,7 @@ socket = connectLobbySocket(session, (msg) => {
       totalBeats = msg.voteQueue.length;
       showBeat(msg);
     } else if (msg.phase === 'results') {
-      goToResults();
+      goToResults(msg.results);
     }
   } else if (msg.type === 'voting-started') {
     totalBeats = msg.voteQueue.length;
@@ -103,7 +104,7 @@ socket = connectLobbySocket(session, (msg) => {
   } else if (msg.type === 'next-beat') {
     showBeat(msg);
   } else if (msg.type === 'results') {
-    goToResults();
+    goToResults(msg.results);
   } else if (msg.type === 'error') {
     playerStatusEl.textContent = msg.message;
   }
