@@ -77,7 +77,7 @@ function showBeat({ currentBeat, canVote, voteEndsAt, voteIndex, totalBeats: mes
     button.classList.remove('selected');
     button.disabled = !canVote;
   });
-  playerStatusEl.textContent = canVote ? 'Now playing…' : 'This is your beat — sit back and listen!';
+  playerStatusEl.textContent = canVote ? 'Now playing…' : 'This is your beat - sit back and listen!';
 
   playBeat(currentBeat);
   startCountdown(voteEndsAt);
