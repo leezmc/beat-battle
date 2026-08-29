@@ -84,3 +84,13 @@ test('validateSong accepts track mix and rejects invalid mix entries', () => {
     trackMix: { kick: { volume: 2, mute: false, reverb: 0, delay: 0, filter: 1 } },
   })), { ok: false, error: 'Invalid track mix.' });
 });
+
+test('validateSong accepts master mix and rejects invalid limiter values', () => {
+  const accepted = validateSong(validSong({ masterMix: { volume: 0.8, limiter: 0.5 } }));
+  assert.strictEqual(accepted.ok, true);
+  assert.deepStrictEqual(accepted.song.masterMix, { volume: 0.8, limiter: 0.5 });
+
+  assert.deepStrictEqual(validateSong(validSong({
+    masterMix: { volume: 1, limiter: 2 },
+  })), { ok: false, error: 'Invalid master mix.' });
+});

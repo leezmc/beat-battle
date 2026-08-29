@@ -25,11 +25,12 @@ const ALLOWED_SYNTHS = new Set([
 
 const ALLOWED_TONE_DURATIONS = new Set(['32n', '16n', '8n', '4n', '2n', '1n']);
 const CUSTOM_NOTE_PATTERN = /^[A-G](?:#|b)?[0-8]$/;
-const SONG_KEYS = new Set(['version', 'bpm', 'steps', 'drums', 'pianoNotes', 'customTracks', 'trackMix']);
+const SONG_KEYS = new Set(['version', 'bpm', 'steps', 'drums', 'pianoNotes', 'customTracks', 'trackMix', 'masterMix']);
 const DRUM_KEYS = new Set(['kick', 'snare', 'hihat']);
 const PIANO_NOTE_KEYS = new Set(['note', 'step', 'duration']);
 const CUSTOM_TRACK_KEYS = new Set(['id', 'label', 'synth', 'note', 'duration', 'options', 'theme', 'steps']);
 const TRACK_MIX_KEYS = new Set(['volume', 'mute', 'reverb', 'delay', 'filter']);
+const MASTER_MIX_KEYS = new Set(['volume', 'limiter']);
 const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 function fail(error) {
@@ -191,6 +192,13 @@ function validateCustomTracks(customTracks, stepCount) {
   return normalized;
 }
 
+function validateMasterMix(masterMix) {
+  if (masterMix === undefined) return { volume: 1, limiter: 0 };
+  if (!isPlainObject(masterMix) || !hasOnlyKeys(masterMix, MASTER_MIX_KEYS)) return null;
+  if (!isUnit(masterMix.volume) || !isUnit(masterMix.limiter)) return null;
+  return { volume: masterMix.volume, limiter: masterMix.limiter };
+}
+
 function validateSong(input) {
   const parsed = parseSongInput(input);
   if (!parsed.ok) return parsed;
@@ -213,6 +221,8 @@ function validateSong(input) {
   if (!customTracks) return fail('Invalid custom tracks.');
   const trackMix = validateTrackMix(song.trackMix);
   if (!trackMix) return fail('Invalid track mix.');
+  const masterMix = validateMasterMix(song.masterMix);
+  if (!masterMix) return fail('Invalid master mix.');
 
   return {
     ok: true,
@@ -224,6 +234,7 @@ function validateSong(input) {
       pianoNotes,
       customTracks,
       trackMix,
+      masterMix,
     },
   };
 }

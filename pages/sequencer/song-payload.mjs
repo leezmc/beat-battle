@@ -1,4 +1,4 @@
-import { copyTrackMix } from './track-mix.mjs';
+import { copyTrackMix, normalizeMasterMix } from './track-mix.mjs';
 
 export const SONG_VERSION = 1;
 
@@ -28,7 +28,7 @@ function copyCustomTrack(track) {
   return payload;
 }
 
-export function createSongPayload({ bpm, steps, drums = {}, pianoNotes = [], customTracks = [], trackMix = {} }) {
+export function createSongPayload({ bpm, steps, drums = {}, pianoNotes = [], customTracks = [], trackMix = {}, masterMix = {} }) {
   const customIds = customTracks.map((track) => track.id).filter(Boolean);
   return {
     version: SONG_VERSION,
@@ -42,6 +42,7 @@ export function createSongPayload({ bpm, steps, drums = {}, pianoNotes = [], cus
     pianoNotes: pianoNotes.map(copyPianoNote),
     customTracks: customTracks.map(copyCustomTrack),
     trackMix: copyTrackMix(trackMix, customIds),
+    masterMix: normalizeMasterMix(masterMix),
   };
 }
 
