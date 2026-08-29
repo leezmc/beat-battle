@@ -94,7 +94,6 @@ export function createTrackStrip({ label, mix, onChange, hideLabel = false }) {
   function sync() {
     muteBtn.classList.toggle('is-muted', state.mute);
     muteBtn.setAttribute('aria-pressed', String(state.mute));
-    root.classList.toggle('is-muted', state.mute);
     volume.value = percent(state.volume);
     reverb.input.value = percent(state.reverb);
     delay.input.value = percent(state.delay);

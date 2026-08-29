@@ -89,13 +89,13 @@ test('submit-beat rejects invalid songs and ignores senders outside a lobby', ()
   assert.strictEqual(lobby.songs.size, 0);
 });
 
-test('resubmitting a beat keeps the same entry id', () => {
+test('resubmitting a beat overwrites the previous song', () => {
   const registry = new SongRegistry();
   const first = registry.submit('p1', validSong());
   const second = registry.submit('p1', { ...validSong(), bpm: 140 });
 
   assert.strictEqual(first.ok, true);
   assert.strictEqual(second.ok, true);
-  assert.strictEqual(second.entryId, first.entryId);
+  assert.strictEqual(registry.size, 1);
   assert.strictEqual(registry.getSong('p1').bpm, 140);
 });

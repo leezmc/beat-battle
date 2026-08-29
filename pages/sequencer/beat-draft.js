@@ -1,4 +1,4 @@
-export const BEAT_DRAFT_STORAGE_KEY = 'beatbattle:beatDraft';
+const BEAT_DRAFT_STORAGE_KEY = 'beatbattle:beatDraft';
 
 export function saveBeatDraft(beatDraft) {
   localStorage.setItem(BEAT_DRAFT_STORAGE_KEY, JSON.stringify(beatDraft));

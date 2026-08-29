@@ -116,7 +116,7 @@ const TOTAL_STEPS = VERSE_START + VERSE_BARS * BAR_STEPS;
 
 const verseDrums = tileDrums(VERSE_DRUM_CELL, VERSE_BARS, VERSE_START);
 
-export const CLARITY_DEMO = {
+const CLARITY_DEMO = {
   version: 1,
   bpm: 128,
   steps: TOTAL_STEPS,
@@ -129,7 +129,7 @@ const TRUNCATED_STEPS = 128;
 const TRUNCATED_BARS = TRUNCATED_STEPS / BAR_STEPS;
 const truncatedDrums = tileDrums(VERSE_DRUM_CELL, TRUNCATED_BARS, VERSE_START);
 
-export const CLARITY_DEMO_TRUNCATED = {
+const CLARITY_DEMO_TRUNCATED = {
   version: 1,
   bpm: 128,
   steps: TRUNCATED_STEPS,
@@ -236,7 +236,7 @@ const G6_STEPS = 272;
 const G6_BARS = G6_STEPS / BAR_STEPS;
 const g6Drums = tileDrums(VERSE_DRUM_CELL, G6_BARS, G6_START);
 
-export const LIKE_A_G6_DEMO = {
+const LIKE_A_G6_DEMO = {
   version: 1,
   bpm: 130,
   steps: G6_STEPS,
@@ -308,7 +308,7 @@ const PORTER_STEPS = 144;
 const PORTER_BARS = PORTER_STEPS / BAR_STEPS;
 const porterDrums = tileDrums(VERSE_DRUM_CELL, PORTER_BARS, PORTER_START);
 
-export const WANNACRY_DEMO = {
+const WANNACRY_DEMO = {
   version: 1,
   bpm: 100,
   steps: PORTER_STEPS,

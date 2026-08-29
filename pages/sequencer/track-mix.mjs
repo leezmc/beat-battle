@@ -1,7 +1,7 @@
 export const DRUM_TRACK_IDS = ['kick', 'snare', 'hihat'];
 export const PIANO_TRACK_ID = 'piano';
 
-export const DEFAULT_TRACK_MIX = Object.freeze({
+const DEFAULT_TRACK_MIX = Object.freeze({
   volume: 1,
   mute: false,
   reverb: 0,
@@ -9,7 +9,7 @@ export const DEFAULT_TRACK_MIX = Object.freeze({
   filter: 1,
 });
 
-export function clamp01(value, fallback) {
+function clamp01(value, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(1, Math.max(0, n));
@@ -25,7 +25,7 @@ export function normalizeTrackMix(mix = {}) {
   };
 }
 
-export const DEFAULT_MASTER_MIX = Object.freeze({
+const DEFAULT_MASTER_MIX = Object.freeze({
   volume: 1,
   limiter: 0,
 });

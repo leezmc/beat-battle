@@ -1,5 +1,3 @@
-const crypto = require('crypto');
-
 const SONG_VERSION = 1;
 const SONG_LIMITS = {
   minBpm: 1,
@@ -248,10 +246,8 @@ class SongRegistry {
     const result = validateSong(input);
     if (!result.ok) return result;
 
-    const previous = this.byPlayer.get(playerId);
-    const entryId = previous ? previous.entryId : crypto.randomUUID();
-    this.byPlayer.set(playerId, { entryId, song: result.song });
-    return { ok: true, entryId, song: result.song };
+    this.byPlayer.set(playerId, result.song);
+    return { ok: true, song: result.song };
   }
 
   has(playerId) {
@@ -259,7 +255,7 @@ class SongRegistry {
   }
 
   getSong(playerId) {
-    return this.byPlayer.get(playerId)?.song ?? null;
+    return this.byPlayer.get(playerId) ?? null;
   }
 
   playerIds() {
@@ -276,10 +272,7 @@ class SongRegistry {
 }
 
 module.exports = {
-  ALLOWED_PIANO_NOTES,
-  ALLOWED_SYNTHS,
   SONG_LIMITS,
-  SONG_VERSION,
   SongRegistry,
   validateSong,
 };

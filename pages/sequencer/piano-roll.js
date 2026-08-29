@@ -9,7 +9,6 @@ export class PianoRoll {
     this.stepCount = 0;
     this.currentPlayStep = -1;
     this.pianoNotes = [];
-    this.sections = [];
 
     this.isDragging = false;
     this.isResizing = false;
@@ -36,13 +35,7 @@ export class PianoRoll {
 
     const { LABEL_WIDTH, MIN_CELL_WIDTH } = UI_CONSTANTS;
     this.canvas.width = Math.max(750, LABEL_WIDTH + this.stepCount * MIN_CELL_WIDTH);
-    this.sections = [];
 
-    this.draw();
-  }
-
-  setSections(sections) {
-    this.sections = sections || [];
     this.draw();
   }
 
@@ -126,19 +119,6 @@ export class PianoRoll {
       this.ctx.stroke();
     }
 
-    if (this.sections.length) {
-      this.ctx.strokeStyle = '#ff9800';
-      this.ctx.lineWidth = 2;
-      this.sections.forEach(section => {
-        if (section.startStep <= 0 || section.startStep > this.stepCount) return;
-        const x = LABEL_WIDTH + (section.startStep * cellWidth);
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, 0);
-        this.ctx.lineTo(x, this.canvas.height);
-        this.ctx.stroke();
-      });
-    }
-
     for (let row = 0; row < PIANO_NOTES.length; row++) {
       for (let col = 0; col < this.stepCount; col++) {
         const note = this.pianoNotes[row][col];
@@ -170,18 +150,6 @@ export class PianoRoll {
       this.ctx.moveTo(playheadX, 0);
       this.ctx.lineTo(playheadX, this.canvas.height);
       this.ctx.stroke();
-    }
-
-    if (this.sections.length) {
-      this.ctx.font = "bold 10px sans-serif";
-      this.ctx.textAlign = "left";
-      this.ctx.textBaseline = "top";
-      this.ctx.fillStyle = '#ff9800';
-      this.sections.forEach(section => {
-        if (section.startStep < 0 || section.startStep >= this.stepCount) return;
-        const x = LABEL_WIDTH + (section.startStep * cellWidth);
-        this.ctx.fillText(section.name, x + 3, 2);
-      });
     }
   }
 

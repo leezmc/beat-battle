@@ -277,24 +277,6 @@
   margin-bottom: 0.25rem;
 }
 
-.section-block {
-  flex: 0 0 auto;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: rgba(9, 21, 255, 0.15);
-  color: var(--accent-soft);
-  font-size: 0.65rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
 .piano-roll-panel {
   width: min(100%, 1000px);
   overflow-x: auto;
@@ -305,47 +287,4 @@
   font-size: 1rem;
   color: var(--muted);
   text-transform: uppercase;
-}
-
-.piano-roll {
-  width: fit-content;
-}
-
-.piano-roll-row {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-
-.piano-note-label {
-  position: sticky;
-  left: 0;
-  flex: 0 0 60px;
-  width: 60px;
-  background: #0a0a0a;
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: bold;
-  z-index: 1;
-}
-
-.piano-tile {
-  flex: 0 0 28px;
-  width: 28px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--muted);
-  border-radius: 2px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.piano-tile.has-note {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.piano-tile.playing {
-  border-color: var(--accent-soft);
-  box-shadow: 0 0 8px var(--accent-soft);
 }

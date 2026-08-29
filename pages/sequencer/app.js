@@ -21,19 +21,6 @@ function loadCustomTrackDefs() {
   }
 }
 
-function buildSectionRuler(rulerEl, sections) {
-  while (rulerEl.children.length > 1) rulerEl.removeChild(rulerEl.lastChild);
-
-  sections.forEach(section => {
-    const block = document.createElement('div');
-    block.className = 'section-block';
-    block.textContent = section.name;
-    block.title = section.name;
-    block.style.width = `${section.steps * 28 + (section.steps - 1) * 5}px`;
-    rulerEl.appendChild(block);
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const toggleSeqBtn = document.getElementById('toggle-seq-btn');
   const bpmInput = document.getElementById('bpm-input');
@@ -45,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepsInput = document.getElementById('steps-input');
   const masterVolumeInput = document.getElementById('master-volume');
   const masterLimiterInput = document.getElementById('master-limiter');
-  const sectionRuler = document.getElementById('section-ruler');
 
   const session = getSessionParamsFromURL();
 
@@ -157,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     drumGrid.buildGrid(stepCount);
     pianoRoll.resizeSteps(stepCount);
     buildCustomTracks(stepCount);
-    buildSectionRuler(sectionRuler, []);
     stepCounter.textContent = `Step: -- / ${stepCount}`;
   }
 
