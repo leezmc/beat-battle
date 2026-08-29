@@ -64,6 +64,7 @@ export class PianoRoll {
   }
 
   setPlayhead(stepIndex) {
+    if (stepIndex === this.currentPlayStep) return;
     this.currentPlayStep = stepIndex;
     this.draw();
   }
@@ -280,6 +281,8 @@ export class PianoRoll {
     });
 
     window.addEventListener('pointerup', () => {
+      if (!this.isDragging && !this.isResizing) return;
+
       if (this.isDragging) {
         this.pianoNotes[this.dragStartRow][this.dragStartCol].active = true;
         this.pianoNotes[this.dragStartRow][this.dragStartCol].duration = this.dragDuration;

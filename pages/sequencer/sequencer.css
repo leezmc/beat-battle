@@ -63,20 +63,156 @@
   gap: 5px;
   align-items: center;
   width: fit-content;
+  position: relative;
 }
 
-.track span {
+.section-ruler > span,
+.track-strip {
   position: sticky;
   left: 0;
-  flex: 0 0 130px;
-  width: 130px;
+  flex: 0 0 220px;
+  width: 220px;
+  height: 28px;
+  background: #0a0a0a;
+  z-index: 2;
+}
+
+.track-strip {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.4rem;
+  overflow: visible;
+}
+
+.track-strip-name {
+  flex: 0 0 72px;
+  width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: bold;
   color: var(--muted);
   text-transform: uppercase;
-  font-size: 0.85rem;
-  background: #0a0a0a;
-  z-index: 1;
+  font-size: 0.7rem;
+  line-height: 28px;
+}
+
+.track-volume-input {
+  flex: 1 1 auto;
+  min-width: 48px;
+  width: 56px;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
+.track-strip-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.track-strip-slider input[type="range"] {
+  width: 100%;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--accent);
+  background: transparent;
+  border: none;
+}
+
+.track-mute-btn,
+.track-fx-btn {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.track-mute-btn:hover:not(:disabled),
+.track-fx-btn:hover:not(:disabled) {
+  background: rgba(9, 21, 255, 0.25);
+  color: var(--accent-soft);
+}
+
+.track-mute-btn.is-muted {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.track-fx-btn.is-open {
+  border-color: var(--accent-soft);
+  color: var(--accent-soft);
+}
+
+.track-fx-popover {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 200px;
+  padding: 0.75rem 0.85rem 0.85rem;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  background: #111111;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75);
+  color: var(--text);
+}
+
+.track-fx-popover[hidden] {
+  display: none;
+}
+
+.track-fx-popover-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.track.is-muted input[type="checkbox"] {
+  opacity: 0.35;
+}
+
+.piano-roll-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.piano-roll-header .track-strip {
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 148px;
+}
+
+.piano-roll-panel.is-muted h2 {
+  opacity: 0.55;
 }
 
 /* Checkbox Styling for Drums */
@@ -132,7 +268,7 @@
 }
 
 .piano-roll-panel h2 {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 1rem;
   color: var(--muted);
   text-transform: uppercase;

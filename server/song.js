@@ -11,6 +11,7 @@ const SONG_LIMITS = {
   maxString: 40,
   maxOptionsDepth: 4,
   maxOptionsKeys: 24,
+  maxTrackMixEntries: 28,
 };
 
 const ALLOWED_PIANO_NOTES = new Set([
@@ -24,10 +25,11 @@ const ALLOWED_SYNTHS = new Set([
 
 const ALLOWED_TONE_DURATIONS = new Set(['32n', '16n', '8n', '4n', '2n', '1n']);
 const CUSTOM_NOTE_PATTERN = /^[A-G](?:#|b)?[0-8]$/;
-const SONG_KEYS = new Set(['version', 'bpm', 'steps', 'drums', 'pianoNotes', 'customTracks']);
+const SONG_KEYS = new Set(['version', 'bpm', 'steps', 'drums', 'pianoNotes', 'customTracks', 'trackMix']);
 const DRUM_KEYS = new Set(['kick', 'snare', 'hihat']);
 const PIANO_NOTE_KEYS = new Set(['note', 'step', 'duration']);
 const CUSTOM_TRACK_KEYS = new Set(['id', 'label', 'synth', 'note', 'duration', 'options', 'theme', 'steps']);
+const TRACK_MIX_KEYS = new Set(['volume', 'mute', 'reverb', 'delay', 'filter']);
 const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 function fail(error) {
@@ -144,6 +146,38 @@ function validateCustomTrack(track, stepCount) {
   return normalized;
 }
 
+function isUnit(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function validateTrackMixEntry(entry) {
+  if (!isPlainObject(entry) || !hasOnlyKeys(entry, TRACK_MIX_KEYS)) return null;
+  if (!isUnit(entry.volume) || !isUnit(entry.reverb) || !isUnit(entry.delay) || !isUnit(entry.filter)) return null;
+  if (typeof entry.mute !== 'boolean') return null;
+  return {
+    volume: entry.volume,
+    mute: entry.mute,
+    reverb: entry.reverb,
+    delay: entry.delay,
+    filter: entry.filter,
+  };
+}
+
+function validateTrackMix(trackMix) {
+  if (trackMix === undefined) return {};
+  if (!isPlainObject(trackMix)) return null;
+  const keys = Object.keys(trackMix);
+  if (keys.length > SONG_LIMITS.maxTrackMixEntries) return null;
+  const normalized = {};
+  for (const key of keys) {
+    if (UNSAFE_KEYS.has(key) || !isBoundedString(key)) return null;
+    const entry = validateTrackMixEntry(trackMix[key]);
+    if (!entry) return null;
+    normalized[key] = entry;
+  }
+  return normalized;
+}
+
 function validateCustomTracks(customTracks, stepCount) {
   if (!Array.isArray(customTracks) || customTracks.length > SONG_LIMITS.maxCustomTracks) return null;
   const seen = new Set();
@@ -177,6 +211,8 @@ function validateSong(input) {
   if (!pianoNotes) return fail('Invalid piano notes.');
   const customTracks = validateCustomTracks(song.customTracks, song.steps);
   if (!customTracks) return fail('Invalid custom tracks.');
+  const trackMix = validateTrackMix(song.trackMix);
+  if (!trackMix) return fail('Invalid track mix.');
 
   return {
     ok: true,
@@ -187,6 +223,7 @@ function validateSong(input) {
       drums,
       pianoNotes,
       customTracks,
+      trackMix,
     },
   };
 }
