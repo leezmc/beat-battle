@@ -1,4 +1,4 @@
-import { connectLobbySocket, getSessionParamsFromURL } from '../shared/lobby-socket.js';
+import { connectLobbySocket, getSessionParamsFromURL, loadCachedResults } from '../shared/lobby-socket.js';
 
 const session = getSessionParamsFromURL();
 if (!session.code || !session.id) {
@@ -28,10 +28,13 @@ function render(results) {
   });
 }
 
+const cachedResults = loadCachedResults(session.code);
+if (cachedResults) render(cachedResults);
+
 connectLobbySocket(session, (msg) => {
   if ((msg.type === 'rejoined' && msg.phase === 'results') || msg.type === 'results') {
     render(msg.results);
-  } else if (msg.type === 'error') {
+  } else if (msg.type === 'error' && !cachedResults) {
     listEl.textContent = msg.message;
   }
 });

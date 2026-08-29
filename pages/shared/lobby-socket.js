@@ -12,6 +12,22 @@ export function buildSessionURL(path, { code, id, nickname }) {
   return `${path}?${params.toString()}`;
 }
 
+const RESULTS_CACHE_KEY = 'beatbattle:results';
+
+export function cacheResults(code, results) {
+  sessionStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify({ code, results }));
+}
+
+export function loadCachedResults(code) {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(RESULTS_CACHE_KEY) || '');
+    if (parsed?.code === code && Array.isArray(parsed.results)) return parsed.results;
+  } catch {
+    // ignore invalid cache
+  }
+  return null;
+}
+
 export function connectLobbySocket({ code, id, nickname }, onMessage) {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const socket = new WebSocket(`${protocol}//${location.host}/ws`);
