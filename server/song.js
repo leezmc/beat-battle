@@ -206,10 +206,24 @@ class SongRegistry {
     return { ok: true, entryId, song: result.song };
   }
 
-  listAnonymous() {
-    return Array.from(this.byPlayer.values())
-      .map(({ entryId, song }) => ({ entryId, song }))
-      .sort((a, b) => a.entryId.localeCompare(b.entryId));
+  has(playerId) {
+    return this.byPlayer.has(playerId);
+  }
+
+  getSong(playerId) {
+    return this.byPlayer.get(playerId)?.song ?? null;
+  }
+
+  playerIds() {
+    return Array.from(this.byPlayer.keys());
+  }
+
+  clear() {
+    this.byPlayer.clear();
+  }
+
+  get size() {
+    return this.byPlayer.size;
   }
 }
 

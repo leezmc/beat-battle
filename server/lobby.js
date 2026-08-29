@@ -25,7 +25,6 @@ function createLobby(hostId) {
     theme: DEFAULT_THEME,
     revealEndsAt: null,
     revealTimer: null,
-    beats: new Map(),
     songs: new SongRegistry(),
     roundEndsAt: null,
     roundTimer: null,
@@ -62,7 +61,7 @@ function currentVotePayload(lobby) {
   return {
     voteIndex: lobby.voteIndex,
     voteEndsAt: lobby.voteEndsAt,
-    currentBeat: lobby.beats.get(ownerId) || null,
+    currentBeat: lobby.songs.getSong(ownerId),
     currentBeatOwnerId: ownerId,
     currentBeatOwnerNickname: lobby.players.get(ownerId)?.nickname || '',
   };
@@ -73,7 +72,7 @@ function phasePayload(lobby, playerId) {
     return { revealEndsAt: lobby.revealEndsAt };
   }
   if (lobby.phase === 'playing') {
-    return { roundEndsAt: lobby.roundEndsAt, submitted: lobby.beats.has(playerId) };
+    return { roundEndsAt: lobby.roundEndsAt, submitted: lobby.songs.has(playerId) };
   }
   if (lobby.phase === 'voting') {
     return { voteQueue: lobby.voteQueue, ...currentVotePayload(lobby) };
@@ -94,7 +93,7 @@ function startReveal(lobby, code) {
 
 function startGame(lobby, code) {
   lobby.phase = 'playing';
-  lobby.beats = new Map();
+  lobby.songs.clear();
   lobby.roundEndsAt = Date.now() + ROUND_DURATION_MS;
   clearTimeout(lobby.roundTimer);
   lobby.roundTimer = setTimeout(() => startVoting(lobby, code), ROUND_DURATION_MS);
@@ -102,7 +101,7 @@ function startGame(lobby, code) {
 }
 
 function maybeAdvancePlayingEarly(lobby, code) {
-  if (lobby.beats.size >= lobby.players.size) {
+  if (lobby.songs.size >= lobby.players.size) {
     clearTimeout(lobby.roundTimer);
     startVoting(lobby, code);
   }
@@ -110,7 +109,7 @@ function maybeAdvancePlayingEarly(lobby, code) {
 
 function startVoting(lobby, code) {
   lobby.phase = 'voting';
-  lobby.voteQueue = Array.from(lobby.beats.keys());
+  lobby.voteQueue = lobby.songs.playerIds();
   lobby.voteIndex = 0;
   lobby.votes = new Map(lobby.voteQueue.map((id) => [id, new Map()]));
 
@@ -270,7 +269,8 @@ const routes = {
     if (!this.lobbyCode) return;
     const lobby = this.lobbies.get(this.lobbyCode);
     if (!lobby || lobby.phase !== 'playing') return;
-    lobby.beats.set(this.id, msg.beat);
+    const result = lobby.songs.submit(this.id, msg.beat);
+    if (!result.ok) return send(this.ws, { type: 'error', message: result.error });
     maybeAdvancePlayingEarly(lobby, this.lobbyCode);
   },
 
@@ -286,21 +286,6 @@ const routes = {
     maybeAdvanceVoteEarly(lobby, this.lobbyCode);
   },
 
-  'submit-song'(msg) {
-    if (!this.lobbyCode) return send(this.ws, { type: 'error', message: 'Not in a lobby.' });
-    const lobby = this.lobbies.get(this.lobbyCode);
-    if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
-    const result = lobby.songs.submit(this.id, msg.song);
-    if (!result.ok) return send(this.ws, { type: 'error', message: result.error });
-    send(this.ws, { type: 'song-accepted', entryId: result.entryId });
-  },
-
-  'request-songs'() {
-    if (!this.lobbyCode) return send(this.ws, { type: 'error', message: 'Not in a lobby.' });
-    const lobby = this.lobbies.get(this.lobbyCode);
-    if (!lobby) return send(this.ws, { type: 'error', message: 'Lobby not found.' });
-    send(this.ws, { type: 'songs', songs: lobby.songs.listAnonymous() });
-  },
 };
 
 class LobbyConnection {

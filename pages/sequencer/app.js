@@ -5,7 +5,7 @@ import { Sounds } from './sounds.js';
 import { PIANO_NOTES } from './config.js';
 import { loadBeatDraft, saveBeatDraft } from './beat-draft.js';
 import { getDemoPresetForNickname } from './presets.js';
-import { createSongPayload } from './song-payload.mjs';
+import { createSongPayload, buildSubmitBeatMessage } from './song-payload.mjs';
 import { CUSTOM_TRACKS_STORAGE_KEY, ELECTRIC_BASS } from '../sound-samples/sample-sounds.js';
 import { buildCheckboxTrack } from './checkbox-track.js';
 import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
@@ -125,8 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, []);
   }
 
-  function createBeatDraft() {
-    return createSongPayload({
+  function collectBeatSong() {
+    return {
       bpm: parseInt(bpmInput.value, 10),
       steps: stepCount,
       drums: {
@@ -144,7 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ...track.def,
         steps: activeSteps(track.boxes),
       })),
-    });
+    };
+  }
+
+  function createBeatDraft() {
+    return createSongPayload(collectBeatSong());
   }
 
   function applyBeatDraft(beatDraft) {
@@ -298,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hasSubmitted = true;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitted — waiting for others…';
-      socket.send(JSON.stringify({ type: 'submit-beat', beat: createBeatDraft() }));
+      socket.send(JSON.stringify(buildSubmitBeatMessage(collectBeatSong())));
     }
 
     function goToPhase(phase, theme) {

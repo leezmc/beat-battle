@@ -41,10 +41,6 @@ export function createSongPayload({ bpm, steps, drums = {}, pianoNotes = [], cus
   };
 }
 
-export function serializeSongPayload(song) {
-  return JSON.stringify(createSongPayload(song));
-}
-
-export function buildSubmitSongMessage(song) {
-  return { type: 'submit-song', song: createSongPayload(song) };
+export function buildSubmitBeatMessage(song) {
+  return { type: 'submit-beat', beat: createSongPayload(song) };
 }
