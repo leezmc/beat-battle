@@ -51,9 +51,9 @@ export class AudioEngineAdapter {
     const reverbSend = new Tone.Gain(0);
     const delaySend = new Tone.Gain(0);
 
-    // source → filter → volume → master (dry)
-    //                      ↳ reverb send → shared reverb → master
-    //                      ↳ delay send  → shared delay  → master
+    // 1. source -> filter -> volume -> master (dry)
+    // 2. reverb send -> shared reverb -> master
+    // 3. delay send  -> shared delay  -> master
 
     filter.connect(volume);
     volume.connect(this.masterGain);
