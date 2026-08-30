@@ -8,7 +8,7 @@ import { getDemoPresetForNickname } from './presets.js';
 import { createSongPayload, buildSubmitBeatMessage } from './song-payload.mjs';
 import { CUSTOM_TRACKS_STORAGE_KEY, ELECTRIC_BASS } from '../sound-samples/sample-sounds.js';
 import { buildCheckboxTrack } from './checkbox-track.js';
-import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL } from '../shared/lobby-socket.js';
+import { connectLobbySocket, getSessionParamsFromURL, buildSessionURL, cacheResults } from '../shared/lobby-socket.js';
 import { autoInitAudio } from '../shared/audio-unlock.js';
 import { PIANO_TRACK_ID, copyTrackMix, normalizeTrackMix, normalizeMasterMix } from './track-mix.mjs';
 import { createTrackStrip } from './track-strip.js';
@@ -154,23 +154,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function collectBeatSong() {
+    const steps = Math.max(1, Math.min(STEPS_MAX, stepCount));
+    const inRange = (index) => index < steps;
     return {
       bpm: parseInt(bpmInput.value, 10),
-      steps: stepCount,
+      steps,
       drums: {
-        kick: activeSteps(drumGrid.kickBoxes),
-        snare: activeSteps(drumGrid.snareBoxes),
-        hihat: activeSteps(drumGrid.hihatBoxes),
+        kick: activeSteps(drumGrid.kickBoxes).filter(inRange),
+        snare: activeSteps(drumGrid.snareBoxes).filter(inRange),
+        hihat: activeSteps(drumGrid.hihatBoxes).filter(inRange),
       },
       pianoNotes: pianoRoll.pianoNotes.flatMap((row, rowIndex) => row.reduce((notes, noteData, step) => {
-        if (noteData.active) {
-          notes.push({ note: PIANO_NOTES[rowIndex], step, duration: noteData.duration });
+        if (noteData.active && step < steps) {
+          notes.push({
+            note: PIANO_NOTES[rowIndex],
+            step,
+            duration: Math.min(noteData.duration, steps - step),
+          });
         }
         return notes;
       }, [])),
       customTracks: customTracks.map(track => ({
         ...track.def,
-        steps: activeSteps(track.boxes),
+        steps: activeSteps(track.boxes).filter(inRange),
       })),
       trackMix: copyTrackMix(trackMixState, customTracks.map((track) => track.def.id)),
       masterMix: normalizeMasterMix(masterMixState),
@@ -329,7 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
     lobbyStatus.textContent = `Lobby ${session.code}`;
 
     let hasSubmitted = false;
+    let submittedByTimeout = false;
     let countdownHandle = null;
+    let autoSubmitHandle = null;
 
     function formatTime(ms) {
       const secs = Math.ceil(Math.max(0, ms) / 1000);
@@ -338,21 +346,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startCountdown(endsAt) {
       clearInterval(countdownHandle);
-      countdownHandle = setInterval(() => {
-        const remainingMs = endsAt - Date.now();
-        roundTimerEl.textContent = formatTime(remainingMs);
-        if (remainingMs <= 0) {
-          clearInterval(countdownHandle);
-          submitBeat();
-        }
-      }, 250);
+      clearTimeout(autoSubmitHandle);
+
+      function tick() {
+        roundTimerEl.textContent = formatTime(endsAt - Date.now());
+      }
+
+      tick();
+      countdownHandle = setInterval(tick, 250);
+      autoSubmitHandle = setTimeout(() => {
+        clearInterval(countdownHandle);
+        roundTimerEl.textContent = '00:00';
+        submitBeat({ timedOut: true });
+      }, Math.max(0, endsAt - Date.now()));
     }
 
-    function submitBeat() {
+    function submitBeat({ timedOut = false } = {}) {
       if (hasSubmitted) return;
       hasSubmitted = true;
+      submittedByTimeout = timedOut;
+      if (isPlaying) stopPlayback();
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitted — waiting for others…';
+      submitBtn.textContent = timedOut
+        ? 'Time’s up — submitting…'
+        : 'Submitted — waiting for others…';
       socket.send(JSON.stringify(buildSubmitBeatMessage(collectBeatSong())));
     }
 
@@ -377,12 +394,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (msg.phase === 'reveal') {
           goToPhase('reveal', msg.theme);
         } else if (msg.phase === 'voting' || msg.phase === 'results') {
+          if (msg.phase === 'voting' && !hasSubmitted) submitBeat({ timedOut: true });
           goToPhase(msg.phase);
         }
       } else if (msg.type === 'voting-started') {
+        if (!hasSubmitted) submitBeat({ timedOut: true });
         goToPhase('voting');
+      } else if (msg.type === 'results') {
+        if (msg.results) cacheResults(session.code, msg.results);
+        goToPhase('results');
       } else if (msg.type === 'error') {
+        if (submittedByTimeout) return;
         lobbyStatus.textContent = msg.message;
+        hasSubmitted = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Beat';
       }
     });
 

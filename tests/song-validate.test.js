@@ -35,7 +35,8 @@ test('validateSong rejects contract violations', () => {
   assert.deepStrictEqual(validateSong(null), { ok: false, error: 'Song required.' });
   assert.deepStrictEqual(validateSong(validSong({ version: 2 })), { ok: false, error: 'Unsupported song version.' });
   assert.deepStrictEqual(validateSong(validSong({ bpm: 0 })), { ok: false, error: 'Invalid BPM.' });
-  assert.deepStrictEqual(validateSong(validSong({ steps: 65 })), { ok: false, error: 'Invalid step count.' });
+  assert.strictEqual(validateSong(validSong({ steps: 256 })).ok, true);
+  assert.deepStrictEqual(validateSong(validSong({ steps: 257 })), { ok: false, error: 'Invalid step count.' });
   assert.deepStrictEqual(validateSong(validSong({ extra: true })), { ok: false, error: 'Invalid song.' });
   assert.deepStrictEqual(validateSong(validSong({ drums: { kick: [99], snare: [], hihat: [] } })), {
     ok: false,

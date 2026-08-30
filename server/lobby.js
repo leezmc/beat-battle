@@ -5,6 +5,8 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_PLAYERS_PER_LOBBY = 8;
 const REVEAL_DURATION_MS = 10_000;
 const ROUND_DURATION_MS = 60_000;
+// Insurance after roundEndsAt. Clients auto-submit ~0.5s before the clock hits 0.
+const ROUND_SUBMIT_GRACE_MS = 500;
 const VOTE_DURATION_MS = 30_000;
 const DEFAULT_THEME = 'Techno';
 const lobbies = new Map();
@@ -102,7 +104,10 @@ function startGame(lobby, code) {
   lobby.songs.clear();
   lobby.roundEndsAt = Date.now() + ROUND_DURATION_MS;
   clearTimeout(lobby.roundTimer);
-  lobby.roundTimer = setTimeout(() => startVoting(lobby, code), ROUND_DURATION_MS);
+  lobby.roundTimer = setTimeout(
+    () => startVoting(lobby, code),
+    ROUND_DURATION_MS + ROUND_SUBMIT_GRACE_MS,
+  );
   broadcast(lobby, { type: 'game-started', code, roundEndsAt: lobby.roundEndsAt });
 }
 
@@ -143,14 +148,33 @@ function advanceVote(lobby, code) {
   broadcastCurrentVote(lobby, 'next-beat');
 }
 
+function eligibleVoterCount(lobby, ownerId) {
+  let count = 0;
+  for (const id of lobby.players.keys()) {
+    if (id !== ownerId) count += 1;
+  }
+  return count;
+}
+
+function enqueueLateSong(lobby, playerId) {
+  if (lobby.voteQueue.includes(playerId)) return;
+  lobby.voteQueue.push(playerId);
+  lobby.votes.set(playerId, new Map());
+}
+
 function maybeAdvanceVoteEarly(lobby, code) {
   const ownerId = lobby.voteQueue[lobby.voteIndex];
-  const votesIn = lobby.votes.get(ownerId).size;
-  const expectedVoters = Math.max(0, lobby.players.size - 1);
-  if (expectedVoters > 0 && votesIn >= expectedVoters) {
-    clearTimeout(lobby.voteTimer);
-    advanceVote(lobby, code);
-  }
+  const votes = ownerId && lobby.votes.get(ownerId);
+  if (!votes) return;
+
+  const expectedVoters = eligibleVoterCount(lobby, ownerId);
+  if (expectedVoters === 0 || votes.size < expectedVoters) return;
+
+  const onLastBeat = lobby.voteIndex + 1 >= lobby.voteQueue.length;
+  if (onLastBeat && lobby.songs.size < lobby.players.size) return;
+
+  clearTimeout(lobby.voteTimer);
+  advanceVote(lobby, code);
 }
 
 function computeResults(lobby) {
@@ -280,10 +304,17 @@ const routes = {
   'submit-beat'(msg) {
     if (!this.lobbyCode) return;
     const lobby = this.lobbies.get(this.lobbyCode);
-    if (!lobby || lobby.phase !== 'playing') return;
+    if (!lobby) return;
+    const lateSubmit = lobby.phase === 'voting' && !lobby.songs.has(this.id);
+    if (lobby.phase !== 'playing' && !lateSubmit) return;
     const result = lobby.songs.submit(this.id, msg.beat);
     if (!result.ok) return send(this.ws, { type: 'error', message: result.error });
-    maybeAdvancePlayingEarly(lobby, this.lobbyCode);
+    if (lobby.phase === 'playing') {
+      maybeAdvancePlayingEarly(lobby, this.lobbyCode);
+      return;
+    }
+    enqueueLateSong(lobby, this.id);
+    maybeAdvanceVoteEarly(lobby, this.lobbyCode);
   },
 
   'submit-vote'(msg) {
@@ -347,4 +378,11 @@ class LobbyConnection {
   }
 }
 
-module.exports = { LobbyConnection, MAX_PLAYERS_PER_LOBBY };
+module.exports = {
+  LobbyConnection,
+  MAX_PLAYERS_PER_LOBBY,
+  REVEAL_DURATION_MS,
+  ROUND_DURATION_MS,
+  ROUND_SUBMIT_GRACE_MS,
+  VOTE_DURATION_MS,
+};

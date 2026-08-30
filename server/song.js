@@ -3,7 +3,7 @@ const SONG_LIMITS = {
   minBpm: 1,
   maxBpm: 300,
   minSteps: 1,
-  maxSteps: 64,
+  maxSteps: 256,
   maxCustomTracks: 24,
   maxSongBytes: 128 * 1024,
   maxString: 40,
