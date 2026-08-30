@@ -39,6 +39,10 @@ h1, h2 {
     background: #0a0a0a;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 label {
     font-size: 0.85rem;
     color: var(--muted);
