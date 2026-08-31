@@ -96,7 +96,8 @@ export class AudioEngineAdapter {
   }
 
   async initialize() {
-    await Tone.start();
+    const raw = Tone.getContext()?.rawContext;
+    if (!(raw instanceof OfflineAudioContext)) await Tone.start();
     if (this._initialized) return;
     if (this.reverb.generate) await this.reverb.generate();
     else if (this.reverb.ready) await this.reverb.ready;
@@ -108,8 +109,8 @@ export class AudioEngineAdapter {
     this.players[soundEnum].start(time);
   }
 
-  playSynthNote(note, durationInSteps, time) {
-    const durationSecs = Tone.Time('16n').toSeconds() * durationInSteps;
+  playSynthNote(note, durationInSteps, time, stepSec) {
+    const durationSecs = (stepSec ?? Tone.Time('16n').toSeconds()) * durationInSteps;
     this.synthPlayer.triggerAttackRelease(note, durationSecs, time);
   }
 
