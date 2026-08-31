@@ -1,9 +1,7 @@
 import { buildCheckboxTrack } from './checkbox-track.js';
-import { Sounds } from './sounds.js';
 
 export class DrumGrid {
-  constructor(onDrumAdded) {
-    this.onDrumAdded = onDrumAdded || (() => {});
+  constructor() {
     this.kickTrack = document.getElementById('kick-track');
     this.snareTrack = document.getElementById('snare-track');
     this.hihatTrack = document.getElementById('hihat-track');
@@ -24,9 +22,9 @@ export class DrumGrid {
 
     this.stepCount = newStepCount;
 
-    this.kickBoxes = buildCheckboxTrack(this.kickTrack, this.stepCount, previousDrums.kick, () => this.onDrumAdded(Sounds.Kick));
-    this.snareBoxes = buildCheckboxTrack(this.snareTrack, this.stepCount, previousDrums.snare, () => this.onDrumAdded(Sounds.Snare));
-    this.hihatBoxes = buildCheckboxTrack(this.hihatTrack, this.stepCount, previousDrums.hihat, () => this.onDrumAdded(Sounds.HiHat));
+    this.kickBoxes = buildCheckboxTrack(this.kickTrack, this.stepCount, previousDrums.kick);
+    this.snareBoxes = buildCheckboxTrack(this.snareTrack, this.stepCount, previousDrums.snare);
+    this.hihatBoxes = buildCheckboxTrack(this.hihatTrack, this.stepCount, previousDrums.hihat);
   }
 
   clear() {

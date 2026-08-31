@@ -1,8 +1,7 @@
 import { PIANO_NOTES, UI_CONSTANTS } from './config.js';
 
 export class PianoRoll {
-  constructor(canvasId, onNoteAdded) {
-    this.onNoteAdded = onNoteAdded || (() => {});
+  constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
     this.ctx = this.canvas.getContext('2d');
     this.canvas.height = PIANO_NOTES.length * UI_CONSTANTS.MIN_ROW_HEIGHT;
@@ -255,7 +254,6 @@ export class PianoRoll {
       if (this.isDragging) {
         this.pianoNotes[this.dragStartRow][this.dragStartCol].active = true;
         this.pianoNotes[this.dragStartRow][this.dragStartCol].duration = this.dragDuration;
-        this.onNoteAdded(PIANO_NOTES[this.dragStartRow], this.dragDuration);
       }
 
       this.isDragging = false;
