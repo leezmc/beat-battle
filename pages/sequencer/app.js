@@ -45,8 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const audioAdapter = new AudioEngineAdapter();
   autoInitAudio(audioAdapter);
-  const drumGrid = new DrumGrid();
-  const pianoRoll = new PianoRoll('piano-roll-canvas');
+  const drumGrid = new DrumGrid((soundEnum) => audioAdapter.playSound(soundEnum));
+  const pianoRoll = new PianoRoll('piano-roll-canvas', (note, duration) => audioAdapter.playSynthNote(note, duration));
 
   let isPlaying = false;
   let stepCount = parseInt(stepsInput.value, 10);
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function buildCustomTracks(steps) {
     const prevChecked = customTracks.map(t => t.boxes.map(b => b.checked));
     customTracks.forEach((t, idx) => {
-      t.boxes = buildCheckboxTrack(t.trackEl, steps, prevChecked[idx]);
+      t.boxes = buildCheckboxTrack(t.trackEl, steps, prevChecked[idx], () => audioAdapter.playSample(t.def));
     });
   }
 
